@@ -61,21 +61,37 @@ def logout(request: Request):
 def with_ids(s, snap):
     ids = {r.key: r.display for r in s.scalars(select(store.CaseId))}
     for c in snap["cases"]:
-        c["id"] = ids.get(c["key"], "")
+        c["id"] = c.get("id") or ids.get(c["key"], "")
     return snap
+
+
+def _public(snap):
+    for c in snap["cases"]:
+        c.pop("key", None)
+        c.pop("legacy", None)
+    return snap
+
+
+def _public_diff(d):
+    """給前端的差異：拿掉內部指紋，只留案號。"""
+    out = {"counts": d.get("counts", {})}
+    for k in ("new", "closed", "reopened", "status", "extended", "missing"):
+        out[k] = [{kk: vv for kk, vv in c.items() if kk != "key"} for c in d.get(k, [])]
+    return out
 
 
 @app.get("/api/bootstrap")
 def bootstrap(user=Depends(auth.current)):
     with store.session() as s:
-        run = store.latest_run(s)
+        runs = list(s.scalars(select(store.Run).where(store.Run.status == "applied").order_by(store.Run.id.desc()).limit(2)))
+        run = runs[0] if runs else None
         out = {"role": user["role"], "user": user["name"], "db": None, "cm": store.kv_get(s, "cm", {}),
-               "ov": store.kv_get(s, "ov", {}), "lastRun": None}
+               "ov": store.kv_get(s, "ov", {}), "lastRun": None, "prev": None, "diff": None}
         if run:
-            snap = with_ids(s, store.unpack(run.snapshot))
-            for c in snap["cases"]:
-                c.pop("key", None)
-                c.pop("legacy", None)
+            snap = _public(with_ids(s, store.unpack(run.snapshot)))
+            if len(runs) > 1:  # 上一次匯入：前端用它算「和上次相比」
+                out["prev"] = _public(with_ids(s, store.unpack(runs[1].snapshot)))
+                out["diff"] = _public_diff(json.loads(run.diff))
             out.update(db=snap, today=snap["today"], planners=snap["planners"],
                        lastRun={"id": run.id, "at": run.created_at.isoformat() + "Z", "by": run.by,
                                 "counts": json.loads(run.diff).get("counts", {})})
@@ -217,7 +233,11 @@ async def import_apply(run_id: int, request: Request, user=Depends(auth.admin)):
         for c in snap["cases"]:
             c["id"] = ids[c["key"]].display
         d = diffing.diff(old, new, aliases)
+        for k in ("new", "closed", "reopened", "status", "extended"):
+            for c in d[k]:
+                c["id"] = ids[c["key"]].display
         run.diff = json.dumps(d, ensure_ascii=False)
+        run.snapshot = store.pack(snap)  # 連同案號一起存，之後即使案件改名也查得到當時的案號
         run.status = "applied"
         s.commit()
         return {"ok": True, "counts": d["counts"]}

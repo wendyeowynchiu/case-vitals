@@ -129,6 +129,7 @@ h4{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:700}
 .report{background:var(--sunk);border-radius:16px;padding:16px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.85;margin:0;font-family:var(--body)}
 .foot{font-size:12px;color:var(--muted2)}
 .viewer .adm{display:none!important}
+.dl{display:inline-block;font-size:11px;font-weight:800;color:var(--purple);background:var(--purple-l);border-radius:50px;padding:0 6px;margin-left:4px;white-space:nowrap;font-family:var(--body)}
 #flash{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;background:var(--text);color:var(--bg);padding:8px 16px;border-radius:50px;font-size:13px;font-weight:700}
 #flash.bad{background:var(--coral);color:var(--on)}
 .mform{display:grid;gap:10px}
@@ -154,7 +155,7 @@ details.dsec summary{cursor:pointer;font-weight:700}
 .plist input[type=date]{border:1px solid var(--border2);background:var(--card);border-radius:10px;padding:4px 8px}
 .plist input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue)}
 .srows{display:flex;flex-direction:column;gap:9px}
-.srow{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:13.5px}
+.srow{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr) minmax(54px,auto);gap:10px;align-items:center;font-size:13.5px}
 .srow small{display:block;color:var(--muted);font-size:12px}
 .srow em{font-style:normal;font-family:var(--mono);font-size:12.5px;text-align:right}
 .sbar{display:flex;height:18px;gap:2px}
@@ -220,6 +221,7 @@ details.dsec summary{cursor:pointer;font-weight:700}
 
   <div id="v-overview" class="view">
     <div class="stats" id="stats"></div>
+    <div class="card" id="diffCard" hidden></div>
     <div class="phero">
       <div class="card"><h2>本中心今日公告</h2><ul class="notice" id="notice"></ul></div>
       <div class="card"><h2>重點觀察名單</h2><p class="sub">異常指數最高的 6 案，點選可調閱</p><ul id="watch" class="notice"></ul></div>
@@ -232,7 +234,7 @@ details.dsec summary{cursor:pointer;font-weight:700}
     <div class="cols3">
       <div class="card"><h2>即將到期與逾期</h2><p class="sub" id="urgentSub"></p><ul class="notice" id="urgent"></ul></div>
       <div class="card"><h2>待追蹤案件</h2><p class="sub">沒有進度最久的 5 案，顯示最後狀態與沒有進度的週數</p><ul class="notice" id="follow"></ul></div>
-      <div class="card"><h2>本週動態</h2><p class="sub">最近一次週會與近 7 日的結案</p><ul class="notice" id="dyn"></ul></div>
+      <div class="card"><h2>本週動態</h2><p class="sub">和上一次匯入相比，結案與狀態有變的案件</p><ul class="notice" id="dyn"></ul></div>
     </div>
     <div class="slabel">團隊工作節奏 <small>進度更新與結案</small></div>
     <div class="cols3">
@@ -241,7 +243,7 @@ details.dsec summary{cursor:pointer;font-weight:700}
       <div class="card"><h2>案件所在階段</h2><p class="sub">列管中案件目前停在哪個狀態，點選可篩選</p><div class="bars" id="byStatus"></div></div>
     </div>
     <div class="cols2">
-      <div class="card"><h2>新增案件</h2><p class="sub">近期成立的案件，本中心已完成建檔</p><ul class="notice" id="recent"></ul><div class="adm" hidden><button class="btn grad" id="newBtn2">＋ 新增通報</button></div></div>
+      <div class="card"><h2>新增案件</h2><p class="sub" id="recentSub">近期成立的案件，本中心已完成建檔</p><ul class="notice" id="recent"></ul><div class="adm" hidden><button class="btn grad" id="newBtn2">＋ 新增通報</button></div></div>
       <div class="card"><h2>本週有進展的專案</h2><p class="sub">最近一次週會有實質進度的專案，值得鼓掌</p><div class="spots" id="focus"></div></div>
     </div>
     <div class="slabel">流程與交接 <small>企劃 → 設計 → Coding，每一段花多久、改幾次</small></div>

@@ -63,3 +63,7 @@ def test_second_import_keeps_case_numbers(client, tmp_path):
     assert p["diff"]["counts"]["new"] == 1 and not p["first"]
     assert all(second[d] == i for d, i in first.items() if d != "重複名稱")
     assert second["新插入的一列"] not in first.values()
+    boot = client.get("/api/bootstrap").json()
+    assert [c["desc"] for c in boot["diff"]["new"]] == ["新插入的一列"] and boot["diff"]["new"][0]["id"] == second["新插入的一列"]
+    assert "key" not in boot["diff"]["new"][0] and len(boot["prev"]["cases"]) == len(boot["db"]["cases"]) - 1
+    assert all(c["id"] for c in boot["prev"]["cases"])

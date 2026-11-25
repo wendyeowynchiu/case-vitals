@@ -30,18 +30,30 @@ const big=c=>{if(c._b)return c._b;const s=(c.desc||'').toLowerCase().replace(/[^
 function sim(a,b){const A=big(a),B=big(b);if(A.size<3||B.size<3)return 0;let n=0;for(const x of A)if(B.has(x))n++;return n/Math.min(A.size,B.size)}
 function suggest(c){const want=c.g==='p'?'m':'p';return cases.filter(x=>x.g===want&&!(want==='m'&&OV[x.id]&&OV[x.id].p)).map(x=>[sim(c,x)+(x.done?0:.05),x]).filter(r=>r[0]>=.62).sort((a,b)=>b[0]-a[0]).slice(0,4).map(r=>r[1])}
 let VIEW=BOOT.role!=='admin';
-cases.forEach(c=>{c.y=(c.closed||c.due||c.req||'').slice(0,4)||String(c.yr||'')});
-for(const id in OV){if(OV[id]&&OV[id].req&&byId.has(id))byId.get(id).req=OV[id].req}
-for(const id in OV){const o=OV[id];if(o&&(o.dn===0||o.dn===1)&&byId.has(id)){const c=byId.get(id);c.done=o.dn;c.auto=0;c.manual=1;if(o.dn&&!c.closed)c.closed=c.due||c.req||TODAY;if(!o.dn)delete c.closed}}
-cases.forEach(c=>{if(c.g!=='p'){c.la=c.req||c.due||'';return}let la=null,lastS='';for(const[wi,s]of hmap(c)){if(!NPR.test(s)&&(!la||WEEKS[wi]>la)){la=WEEKS[wi];lastS=s}}c.la=la||c.req||'';
-  if(c.done===2&&PLC.includes(c.src)){if(!c.status||NPR.test(c.status))c.status=lastS||'未填';if(c.hid){c.done=1;c.auto=1;c.closed=c.closed||la||c.due||c.req;c.y=(c.closed||'').slice(0,4)||c.y}else{c.done=0;c.revived=1}}
-  if(!c.done){const base=la||c.req;c.stall=base?Math.max(0,Math.round(days(T0,D(base))/7)):0}});
-function hmap(c){if(!c._h){c._h=new Map();for(let i=0;i<(c.h||[]).length;i+=2)c._h.set(c.h[i],VOC[c.h[i+1]])}return c._h}
+/* 把一份快照整理成可以計算的案件清單：套用站上的手動判定，算出最後有進度的日期與沒有進度幾週 */
+function prep(list,db,today){const t0=new Date(today+'T00:00:00'),bid=new Map(list.map(c=>[c.id,c]));
+  list.forEach(c=>{c._db=db;c.y=(c.closed||c.due||c.req||'').slice(0,4)||String(c.yr||'')});
+  for(const id in OV){const o=OV[id],c=bid.get(id);if(!o||!c)continue;if(o.req)c.req=o.req;
+    if(o.dn===0||o.dn===1){c.done=o.dn;c.auto=0;c.manual=1;if(o.dn&&!c.closed)c.closed=c.due||c.req||today;if(!o.dn)delete c.closed}}
+  list.forEach(c=>{if(c.g!=='p'){c.la=c.req||c.due||'';return}let la=null;for(const[wi,s]of hmap(c)){const w=db.weeks[wi];if(!NPR.test(s)&&(!la||w>la))la=w}c.la=la||c.req||'';
+    if(!c.done){const base=la||c.req;c.stall=base?Math.max(0,Math.round(days(t0,D(base))/7)):0}});
+  return list}
+prep(cases,DB,TODAY);
+const PREV=BOOT.prev?prep(BOOT.prev.cases,BOOT.prev,BOOT.prev.today):null, DF=PREV&&BOOT.diff?BOOT.diff:null;
+/* 和上一次匯入相比的差距標示 */
+function dl(cur,prev,digits){if(!PREV)return'';if(prev===undefined||prev===null)return' <span class="dl" data-tip="上次沒有這一項">新</span>';const d=+(cur-prev).toFixed(digits||0);return d?` <span class="dl" data-tip="上次是 ${prev}">${d>0?'▲':'▼'}${Math.abs(d)}</span>`:''}
+const med=a=>{a=[...a].sort((x,y)=>x-y);return a.length?a[Math.floor((a.length-1)/2)]:0};
+const mStage=list=>list.filter(c=>!c.done).reduce((m,c)=>m.set(c.status||'未填',(m.get(c.status||'未填')||0)+1),new Map());
+const mWork=(list,db)=>Object.fromEntries(PLC.map(p=>{const w=db.shw[p]||[],has=wi=>list.filter(c=>c.src===p&&hmap(c).get(wi)&&!NPR.test(hmap(c).get(wi))).length;let wi=w[0],n=has(wi);if(!n&&w.length>1){wi=w[1];n=has(wi)}return[p,{n,wk:db.weeks[wi]||''}]}));
+const mWd=(list,today)=>Object.fromEntries(MK.map(u=>{const a=list.filter(c=>c.src===u&&c.done===1&&c.req&&(c.closed||'').startsWith(today.slice(0,4))).map(c=>wd(c.req,c.closed));return[u,{n:a.length,v:med(a)}]}));
+const mVer=(list,today)=>Object.fromEntries(MK.map(u=>{const all=list.filter(c=>c.src===u&&c.yr===+today.slice(0,4)),a=all.filter(c=>c.ver>=1);return[u,{n:a.length,all:all.length,v:a.length?+(a.reduce((s,c)=>s+c.ver,0)/a.length).toFixed(1):0,m:Math.max(0,...a.map(c=>c.ver))}]}));
+
+function hmap(c){if(!c._h){const V=(c._db||DB).vocab;c._h=new Map();for(let i=0;i<(c.h||[]).length;i+=2)c._h.set(c.h[i],V[c.h[i+1]])}return c._h}
 function wd(a,b){if(!a||!b)return null;const d1=D(a),d2=D(b);if(d2<d1)return 0;const tot=days(d2,d1);let n=Math.floor(tot/7)*5;const dow=d1.getDay();for(let i=0;i<tot%7;i++){const x=(dow+i)%7;if(x!==0&&x!==6)n++}return n}
 const STG=[['plan','企劃作業','--s1'],['queue','已接收未開始','--acc2'],['design','設計階段','--s5'],['coding','Coding 階段','--s2'],['wait','等確認／等對方','--s4'],['idle','沒有進度','--idle'],['done','完成','--s3']];
 const STGN=Object.fromEntries(STG.map(s=>[s[0],s])),SV=k=>`var(${STGN[k][2]})`;
 function stageOf(s){if(!s)return null;if(NPR.test(s))return'idle';if(isDone(s))return'done';if(/cod|程式|mis|前端|後端|發信|上線|上傳|測試/i.test(s))return'coding';if(/設計|design|開單|修改|v\d|\bgd\b|排版|美化/i.test(s))return'design';if(/pending/i.test(s))return'queue';if(/確認|review|等|待|暫|回覆/i.test(s))return'wait';return'plan'}
-function stageStats(p){const n={},mv={},hm=hmap(p);if(!hm.size)return[n,mv,0];const ks=[...hm.keys()],lo=Math.min(...ks),hi=Math.max(...ks),cols=(SHW[p.src]||ks).filter(i=>i>=lo&&i<=hi).sort((a,b)=>b-a);let tot=0;
+function stageStats(p){const n={},mv={},hm=hmap(p),SHW=(p._db||DB).shw,WEEKS=(p._db||DB).weeks;if(!hm.size)return[n,mv,0];const ks=[...hm.keys()],lo=Math.min(...ks),hi=Math.max(...ks),cols=(SHW[p.src]||ks).filter(i=>i>=lo&&i<=hi).sort((a,b)=>b-a);let tot=0;
   cols.forEach((wi,j)=>{const s=hm.get(wi),st=s?stageOf(s):'idle',w=j<cols.length-1?Math.max(1,Math.round(days(D(WEEKS[cols[j+1]]),D(WEEKS[wi]))/7)):1;n[st]=(n[st]||0)+w;tot+=w;const v=s&&(s.match(/[Vv](\d)/)||[])[1];if(v)mv[st]=Math.max(mv[st]||0,+v)});return[n,mv,tot]}
 const wks=(a,b)=>Math.round(days(D(b),D(a))/7)+1;
 const CATS=['專案／網頁','FAQ','社群','影片','文宣','展覽','活動','電商','內容／翻譯','其他'];
@@ -49,6 +61,12 @@ const CATR=[[/faq/i,'FAQ'],[/social|sociomedia|社群|linkedin|facebook|\bfb\b|\
 const rawCat=c=>(c.topic||'').trim()||'（未填）';
 function catOf(c){const m=OV._catmap&&OV._catmap[rawCat(c)];if(m)return m;if(c._k)return c._k;const f=s=>{for(const[r,k]of CATR)if(r.test(s))return k;return null};return c._k=f(c.topic||'')||f([c.cat,c.kind].join(' '))||f(c.desc||'')||'其他'}
 let PF={k:''};
+const SG=STG.filter(g=>g[0]!=='done');
+const mCat=(list,today)=>Object.fromEntries(CATS.map(k=>{const a=list.filter(c=>PLC.includes(c.src)&&c.done===1&&(c.closed||'').startsWith(today.slice(0,4))&&c.req&&catOf(c)===k).map(c=>wks(c.req,c.closed));return[k,{n:a.length,v:med(a)}]}));
+const mComp=(list,today,kc)=>Object.fromEntries(PLC.map(p=>{const cs=list.filter(c=>c.src===p&&c.done===1&&(c.closed||'').startsWith(today.slice(0,4))&&c.h&&c.h.length&&(!kc||catOf(c)===kc)),tot={},wz=[];
+  cs.forEach(c=>{const[n]=stageStats(c);SG.forEach(g=>{tot[g[0]]=(tot[g[0]]||0)+(n[g[0]]||0)});if(c.req&&c.closed)wz.push(wks(c.req,c.closed))});
+  const op=list.filter(c=>c.src===p&&!c.done&&c.req&&(!kc||catOf(c)===kc)),avg=Object.fromEntries(SG.map(g=>[g[0],(tot[g[0]]||0)/(cs.length||1)]));
+  return[p,{p,n:cs.length,md:med(wz),avg,sum:+SG.reduce((s,g)=>s+avg[g[0]],0).toFixed(1),open:op.length,age:med(op.map(c=>wks(c.req,today)))}]}));
 const kStart=k=>k.req||null,kEnd=k=>k.closed||(k.done?k.due:TODAY);
 function handoff(ks){const de=ks.filter(k=>k.src==='Design'&&k.done&&kEnd(k)).map(kEnd).sort().pop(),cs=ks.filter(k=>k.src==='Coding'&&k.req).map(k=>k.req).sort()[0];if(!de||!cs)return null;return cs>=de?wd(de,cs)+' 個工作日':'重疊進行'}
 function flowParent(c){if(c.g==='p')return c;const pid=OV[c.id]&&OV[c.id].p;return pid?byId.get(pid):null}
@@ -79,23 +97,20 @@ function drawFlow(c){const el=$('flowC');if(!el)return;const p=flowParent(c),ks=
   const ho=handoff(ks);if(ho)out+=`<li><span class="tag pur">交接</span><span>設計結案 → Coding 開單：${ho}</span></li>`;
   $('flowS').innerHTML=out}
 function renderPipeline(){
-  const med=a=>{a=[...a].sort((x,y)=>x-y);return a.length?a[Math.floor((a.length-1)/2)]:0};
-  const SG=STG.filter(g=>g[0]!=='done'),kc=PF.k;
+  const kc=PF.k,PT=PREV&&BOOT.prev.today;
   $('lg-stg').innerHTML=SG.map(g=>`<span><i style="background:var(${g[2]})"></i>${g[1]}</span>`).join('');
   chips('pfChips',[['','全部分類'],...CATS.map(k=>[k,k])],kc,'data-pk');
-  const prow=PLC.map(p=>{const cs=cases.filter(c=>c.src===p&&c.done===1&&(c.closed||'').startsWith(YR)&&c.h&&c.h.length&&(!kc||catOf(c)===kc)),tot={},wz=[];
-    cs.forEach(c=>{const[n]=stageStats(c);SG.forEach(g=>{tot[g[0]]=(tot[g[0]]||0)+(n[g[0]]||0)});if(c.req&&c.closed)wz.push(wks(c.req,c.closed))});
-    const op=cases.filter(c=>c.src===p&&!c.done&&c.req&&(!kc||catOf(c)===kc)),avg=Object.fromEntries(SG.map(g=>[g[0],(tot[g[0]]||0)/(cs.length||1)]));
-    return{p,n:cs.length,md:med(wz),avg,sum:SG.reduce((s,g)=>s+avg[g[0]],0),open:op.length,age:med(op.map(c=>wks(c.req,TODAY)))}});
-  const pmx=Math.max(...prow.map(r=>r.sum),1);
-  $('stgRows').innerHTML=prow.map(r=>`<div class="srow"><span><b>${r.p}</b><small>${r.n?`結案 ${r.n} 案｜中位 ${r.md} 週`:'這個分類今年沒有結案'}</small></span><div><div class="sbar" style="width:${(r.sum/pmx*100).toFixed(1)}%">${SG.map(g=>{const v=r.avg[g[0]];return v>0.04?`<span style="flex:${v};background:var(${g[2]})" data-tip="${esc(`<b>${r.p}｜${g[1]}</b><br>平均每案 ${v.toFixed(1)} 週`)}"></span>`:''}).join('')}</div></div><em>${r.n?r.sum.toFixed(1)+' 週':'—'}</em></div>`).join('');
+  const comp=mComp(cases,TODAY,kc),compP=PREV&&mComp(PREV,PT,kc),prow=PLC.map(p=>comp[p]),pmx=Math.max(...prow.map(r=>r.sum),1);
+  $('stgRows').innerHTML=prow.map(r=>{const q=compP&&compP[r.p];return`<div class="srow"><span><b>${r.p}</b><small>${r.n?`結案 ${r.n} 案${q?dl(r.n,q.n):''}｜中位 ${r.md} 週${q&&q.n?dl(r.md,q.md):''}`:'這個分類今年沒有結案'}</small></span><div><div class="sbar" style="width:${(r.sum/pmx*100).toFixed(1)}%">${SG.map(g=>{const v=r.avg[g[0]];return v>0.04?`<span style="flex:${v};background:var(${g[2]})" data-tip="${esc(`<b>${r.p}｜${g[1]}</b><br>平均每案 ${v.toFixed(1)} 週`)}"></span>`:''}).join('')}</div></div><em>${r.n?r.sum.toFixed(1)+' 週'+(q&&q.n?dl(r.sum,q.sum,1):''):'—'}</em></div>`}).join('');
   $('stgNote').textContent='目前列管中'+(kc?'（'+kc+'）':'')+'：'+prow.map(r=>`${r.p} ${r.open} 案`+(r.open?`（中位已開 ${r.age} 週）`:'')).join('、')+'。';
-  hbars('catBars',CATS.map(k=>{const a=cases.filter(c=>PLC.includes(c.src)&&c.done===1&&(c.closed||'').startsWith(YR)&&c.req&&catOf(c)===k).map(c=>wks(c.req,c.closed));return{k,n:a.length,v:med(a)}}).filter(r=>r.n>=3).map(r=>({l:r.k,v:r.v,t:`<b>${r.k}</b><br>中位 ${r.v} 週（${r.n} 案）`})));
+  const cat=mCat(cases,TODAY),catP=PREV&&mCat(PREV,PT);
+  hbars('catBars',CATS.filter(k=>cat[k].n>=3).map(k=>({l:k,v:cat[k].v,d:catP&&catP[k].n>=3?dl(cat[k].v,catP[k].v):'',t:`<b>${k}</b><br>中位 ${cat[k].v} 週（${cat[k].n} 案）`})));
   const noReq=cases.filter(c=>c.src==='Design'&&!c.req&&(c.yr===+YR||!c.done));$('reqCount').textContent=noReq.length;
-  const rowsW=MK.map(u=>{const a=cases.filter(c=>c.src===u&&c.done===1&&c.req&&(c.closed||'').startsWith(YR)).map(c=>wd(c.req,c.closed));return{u,n:a.length,v:med(a)}}).filter(r=>r.n>=3);
-  hbars('wdBars',rowsW.map(r=>({l:SRC[r.u],v:r.v,t:`<b>${SRC[r.u]}</b><br>中位數 ${r.v} 個工作日（${r.n} 件）`})));
-  $('wdNote').textContent='美感供應科沒有出現，是因為設計表幾乎沒有填「申請時間」，算不出工作日。';
-  hbars('verBars',MK.map(u=>{const all=cases.filter(c=>c.src===u&&c.yr===+YR),a=all.filter(c=>c.ver>=1);return{u,n:a.length,all:all.length,v:a.length?+(a.reduce((s,c)=>s+c.ver,0)/a.length).toFixed(1):0,m:Math.max(0,...a.map(c=>c.ver))}}).filter(r=>r.n>=3).map(r=>({l:SRC[r.u],v:r.v,t:`<b>${SRC[r.u]}</b><br>平均第 ${r.v} 版，最高第 ${r.m} 版<br>${r.all} 件中有 ${r.n} 件留下版本紀錄`})));
+  const wdm=mWd(cases,TODAY),wdP=PREV&&mWd(PREV,PT);
+  hbars('wdBars',MK.filter(u=>wdm[u].n>=3).map(u=>({l:SRC[u],v:wdm[u].v,d:wdP&&wdP[u].n>=3?dl(wdm[u].v,wdP[u].v):'',t:`<b>${SRC[u]}</b><br>中位數 ${wdm[u].v} 個工作日（${wdm[u].n} 件）`})));
+  $('wdNote').textContent=wdm.Design.n>=3?'':'美感供應科沒有出現，是因為設計表幾乎沒有填「申請時間」，算不出工作日。';
+  const vm=mVer(cases,TODAY),vP=PREV&&mVer(PREV,PT);
+  hbars('verBars',MK.filter(u=>vm[u].n>=3).map(u=>({l:SRC[u],v:vm[u].v,d:vP&&vP[u].n>=3?dl(vm[u].v,vP[u].v,1):'',t:`<b>${SRC[u]}</b><br>平均第 ${vm[u].v} 版，最高第 ${vm[u].m} 版<br>${vm[u].all} 件中有 ${vm[u].n} 件留下版本紀錄`})));
   const ps=[...KC.keys()].map(id=>byId.get(id)).filter(Boolean);
   const cell=(ks,u)=>{const a=ks.filter(k=>k.src===u);if(!a.length)return'—';const d=a.map(k=>wd(kStart(k),kEnd(k))).filter(v=>v!=null),v=Math.max(0,...a.map(k=>k.ver||0));return`${a.length} 件｜${d.length?d.reduce((x,y)=>x+y,0)+' 日':'無開單日'}${v?'｜V'+v:''}`};
   $('famTable').innerHTML=ps.length?`<table class="ft"><thead><tr><th>母案</th><th>企劃歷時</th><th>設計</th><th>Coding</th><th>影片</th><th>設計→Coding</th><th>目前</th></tr></thead><tbody>${ps.map(p=>{const ks=kids(p.id),[n,mv]=stageStats(p),tot=Object.values(n).reduce((a,b)=>a+b,0),o=ks.filter(k=>!k.done);
@@ -224,7 +239,7 @@ function wkChart(){const el=$('c-wk');if(!WK.length)return;const W=Math.max(260,
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="近 8 週每週結案量長條圖"><line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="${cv('--axis')}"/>`;
   WK.forEach((v,i)=>{const last=i===n-1;s+=`<rect x="${(L+bw*i+bw*.2).toFixed(1)}" y="${y(v).toFixed(1)}" width="${(bw*.6).toFixed(1)}" height="${(H-B-y(v)).toFixed(1)}" rx="5" fill="${cv(last?'--acc':'--acc2')}" data-tip="${esc(`<b>${last?'本週':'前 '+(n-1-i)+' 週'}</b><br>結案 ${v} 案`)}"/><text x="${L+bw*(i+.5)}" y="${y(v)-5}" text-anchor="middle" style="fill:${cv('--text')};font-weight:700">${v}</text><text x="${L+bw*(i+.5)}" y="${H-6}" text-anchor="middle">${last?'本週':'W-'+(n-1-i)}</text>`});
   el.innerHTML=s+'</svg>'}
-function hbars(el,rows,attr){const mx=Math.max(...rows.map(r=>r.v),1);$(el).innerHTML=rows.map(r=>{const inner=`<span>${esc(r.l)}</span><i><u style="width:${r.v/mx*100}%"></u>${r.o?`<u class="o" style="width:${r.o/mx*100}%"></u>`:''}</i><em>${r.v}</em>`;return attr?`<button class="bar" ${attr}="${esc(r.k)}" data-tip="${esc(r.t||'')}">${inner}</button>`:`<div class="bar" data-tip="${esc(r.t||'')}">${inner}</div>`}).join('')}
+function hbars(el,rows,attr){const mx=Math.max(...rows.map(r=>r.v),1);$(el).innerHTML=rows.map(r=>{const inner=`<span>${esc(r.l)}${r.d||''}</span><i><u style="width:${r.v/mx*100}%"></u>${r.o?`<u class="o" style="width:${r.o/mx*100}%"></u>`:''}</i><em>${r.v}</em>`;return attr?`<button class="bar" ${attr}="${esc(r.k)}" data-tip="${esc(r.t||'')}">${inner}</button>`:`<div class="bar" data-tip="${esc(r.t||'')}">${inner}</div>`}).join('')}
 function renderCharts(){
   legend('lg-line',PLC);lineChart();heatNP();
   legend('lg-q',MK);stacked('c-q',CH.q.labels,CH.q.series,MK,'製作需求每季結案量堆疊長條圖',(lb,i)=>lb.endsWith('Q1')||i===0?lb.slice(0,4):'');
@@ -246,14 +261,15 @@ function renderOverview(){
     .map(s=>`<button class="stat ${s[2]}" data-state="${s[3]}" data-flag="${s[4]}" data-yr="${s[5]}"><b>${s[1]}</b><span>${s[0]}</span></button>`).join('');
   const cnt=f=>[...o.reduce((m,c)=>m.set(f(c),(m.get(f(c))||0)+1),new Map())].sort((a,b)=>b[1]-a[1]);
   hbars('bySrc',cnt(c=>c.src).map(r=>({k:r[0],l:SRC[r[0]],v:r[1],t:`<b>${SRC[r[0]]}</b><br>列管中 ${r[1]} 件`})),'data-src');
-  hbars('byStatus',cnt(c=>c.status||'未填').slice(0,9).map(r=>({k:r[0],l:r[0],v:r[1],t:`<b>${esc(r[0])}</b><br>${r[1]} 件`})),'data-st');
+  const stg=[...mStage(cases)].sort((a,b)=>b[1]-a[1]).slice(0,9),stgP=PREV&&mStage(PREV);
+  hbars('byStatus',stg.map(r=>({k:r[0],l:r[0],v:r[1],d:stgP?dl(r[1],stgP.get(r[0])):'',t:`<b>${esc(r[0])}</b><br>${r[1]} 件`})),'data-st');
   const top=[...o].sort((a,b)=>score(b)-score(a)||(b.la||'').localeCompare(a.la||'')).slice(0,6);
   const li=(tg,cl,c,sub)=>`<li><span class="tag ${cl}">${tg}</span><span><a data-id="${c.id}">${esc(c.desc)}</a><br><small>${esc(sub)}</small></span></li>`;
   $('watch').innerHTML=top.map(c=>li(level(c)[0],level(c)[1],c,cmOf(c))).join('');
   const within=(d,n)=>d&&days(T0,D(d))<=n&&days(T0,D(d))>=-1;
   const nw=cases.filter(c=>within(c.req,7)),cl7=cases.filter(c=>c.done===1&&within(c.closed,7));
-  $('newCount').textContent=nw.length;
-  $('newSub').textContent=nw.length>cl7.length?`同期結案 ${cl7.length} 案。進大於出，本中心建議各位深呼吸。`:`同期結案 ${cl7.length} 案。出大於進，本中心罕見地感到欣慰。`;
+  $('newCount').textContent=DF?DF.new.length:nw.length;
+  if(DF)$('newSub').textContent=`這次匯入比上次多出 ${DF.new.length} 案，同時結案 ${DF.closed.length} 案。`+(DF.new.length>DF.closed.length?'進大於出，本中心建議各位深呼吸。':'出大於進，本中心罕見地感到欣慰。');else $('newSub').textContent=nw.length>cl7.length?`同期結案 ${cl7.length} 案。進大於出，本中心建議各位深呼吸。`:`同期結案 ${cl7.length} 案。出大於進，本中心罕見地感到欣慰。`;
   const lead=(arr,f)=>[...arr.reduce((m,c)=>{const k=f(c);if(k)m.set(k,(m.get(k)||0)+1);return m},new Map())].sort((a,b)=>b[1]-a[1])[0];
   const lp=lead(cl7.filter(c=>c.g==='p'),c=>c.src),ld=lead(cl7.filter(c=>c.g==='m'),c=>(c.gd||'').split(' ')[0].replace(/^(TBD|-)$/,''));
   $('leaders').innerHTML=[['企','企劃結案最多',lp],['設','設計結案最多',ld]].map(r=>`<div class="leader"><i>${r[0]}</i><div><b>${r[2]?esc(r[2][0]):'從缺'}</b><small>${r[1]}${r[2]?'':'，本中心靜候佳音'}</small></div><em>${r[2]?r[2][1]+' 案':'—'}</em></div>`).join('');
@@ -264,9 +280,16 @@ function renderOverview(){
   $('follow').innerHTML=[...o].filter(c=>(c.stall||0)>=3).sort((a,b)=>b.stall-a.stall).slice(0,5).map(c=>li('無進度 '+c.stall+' 週','amb',c,cmOf(c))).join('')||'<li>目前沒有失聯案件，本中心不太習慣。</li>';
   const latest=c=>{const w=SHW[c.src];return w?hmap(c).get(w[0])||hmap(c).get(w[1]):null};
   const moving=cases.filter(c=>c.g==='p'&&!c.done&&latest(c)&&!NPR.test(latest(c)));
-  $('dyn').innerHTML=[...cl7].sort((a,b)=>b.closed.localeCompare(a.closed)).slice(0,3).map(c=>li('結案','grn',c,SRC[c.src]+'｜'+md(c.closed)+' 結案')).concat(moving.slice(-3).reverse().map(c=>li('進度','blu',c,SRC[c.src]+'｜'+latest(c)))).join('');
-  hbars('work',PLC.map(p=>{const w=SHW[p];let wi=w[0],n=cases.filter(c=>c.src===p&&hmap(c).get(wi)&&!NPR.test(hmap(c).get(wi))).length;if(!n){wi=w[1];n=cases.filter(c=>c.src===p&&hmap(c).get(wi)&&!NPR.test(hmap(c).get(wi))).length}return{l:p,v:n,t:`<b>${p}</b><br>${WEEKS[wi].replace(/-/g,'/')} 週會：${n} 案有進度`}}));
-  $('recent').innerHTML=[...cases].filter(c=>c.req).sort((a,b)=>b.req.localeCompare(a.req)).slice(0,4).map(c=>li('新增','blu',c,SRC[c.src]+'｜'+md(c.req)+' 成立'+(c.due?'，期限 '+md(c.due):''))).join('');
+  if(DF)$('dyn').innerHTML=DF.closed.slice(0,3).map(x=>byId.get(x.id)?li('結案','grn',byId.get(x.id),SRC[x.src]+'｜'+(x.before||'未填')+' → '+(x.status||'結案')):'').concat(DF.status.slice(0,4).map(x=>byId.get(x.id)?li('進度','blu',byId.get(x.id),SRC[x.src]+'｜'+(x.before||'未填')+' → '+(x.status||'未填')):'')).join('');else $('dyn').innerHTML=[...cl7].sort((a,b)=>b.closed.localeCompare(a.closed)).slice(0,3).map(c=>li('結案','grn',c,SRC[c.src]+'｜'+md(c.closed)+' 結案')).concat(moving.slice(-3).reverse().map(c=>li('進度','blu',c,SRC[c.src]+'｜'+latest(c)))).join('');
+  const wl=mWork(cases,DB),wlP=PREV&&mWork(PREV,BOOT.prev);
+  hbars('work',PLC.map(p=>({l:p,v:wl[p].n,d:wlP?dl(wl[p].n,wlP[p].n):'',t:`<b>${p}</b><br>${wl[p].wk.replace(/-/g,'/')} 週會：${wl[p].n} 案有進度`+(wlP?`<br>上次（${wlP[p].wk.replace(/-/g,'/')}）：${wlP[p].n} 案`:'')})));
+  if(DF){const nc=DF.new.map(x=>byId.get(x.id)).filter(Boolean).sort((a,b)=>(a.g+a.src).localeCompare(b.g+b.src));
+    $('recentSub').textContent=`這次匯入新出現的案件，共 ${nc.length} 筆`;$('recent').style.cssText='max-height:340px;overflow-y:auto';
+    $('recent').innerHTML=nc.map(c=>li('新增','blu',c,SRC[c.src]+'｜'+(c.status||'未填')+(c.due?'｜期限 '+md(c.due):''))).join('')||'<li>這次沒有新案件。</li>';
+    const L={new:['新案件','blu'],closed:['結案','grn'],status:['狀態變動',''],extended:['期限延後','amb'],reopened:['重新列管','red'],missing:['Excel 裡不見了','red']};
+    const row=(k,c)=>`<li>${c.id&&byId.has(c.id)?`<a class="lnk" data-id="${c.id}">${esc(c.desc)}</a>`:esc(c.desc)} <small>${esc(SRC[c.src]||c.src)}${k==='status'||k==='closed'||k==='reopened'?`｜${esc(c.before||'未填')} → ${esc(c.status||'未填')}`:k==='extended'?`｜${md(c.before)} → ${md(c.after)}`:c.status?'｜'+esc(c.status):''}</small></li>`;
+    $('diffCard').hidden=false;$('diffCard').innerHTML=`<h2>本週異動公報</h2><p class="sub">上次匯入（基準日 ${md(BOOT.prev.today)}）到這次（基準日 ${md(TODAY)}）之間的差異。圖表上的 ▲▼ 也是和上次相比。</p><div class="dstats">${Object.keys(L).map(k=>`<span class="tag ${L[k][1]}">${L[k][0]} ${DF[k].length}</span>`).join('')}<span class="tag">合計 ${cases.length.toLocaleString()} 案</span></div>`+Object.keys(L).filter(k=>DF[k].length).map(k=>`<details class="dsec"><summary>${L[k][0]}（${DF[k].length}）</summary><ul class="dlist">${DF[k].map(c=>row(k,c)).join('')}</ul></details>`).join('')}
+  else $('recent').innerHTML=[...cases].filter(c=>c.req).sort((a,b)=>b.req.localeCompare(a.req)).slice(0,4).map(c=>li('新增','blu',c,SRC[c.src]+'｜'+md(c.req)+' 成立'+(c.due?'，期限 '+md(c.due):''))).join('');
   $('focus').innerHTML=moving.filter(c=>/project|40th|ces|video/i.test(c.topic||'')).concat(moving).filter((c,i,a)=>a.indexOf(c)===i).slice(0,5).map(c=>`<button class="spot" data-id="${c.id}"><span class="star">✦</span><span><b>${esc(c.desc)}</b><small>${esc(latest(c))}｜${esc(cmOf(c))}</small></span></button>`).join('');
   WK=Array.from({length:8},(_,i)=>{const hi=(7-i)*7,lo=hi+7;return cases.filter(c=>c.done===1&&c.closed&&days(T0,D(c.closed))<lo-1&&days(T0,D(c.closed))>=hi-1).length});
   const pick=(arr,f)=>[...arr].sort((a,b)=>f(b)-f(a))[0];
