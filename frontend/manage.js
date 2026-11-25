@@ -8,7 +8,7 @@ $('logoutBtn').onclick=async()=>{await post('/api/logout');location.href='/login
 const root=$('v-manage');
 if(!B.db){
   document.querySelectorAll('.view').forEach(v=>v.hidden=v!==root);
-  document.querySelector('.rail').hidden=true;$('roleBtn').hidden=true;$('fBtn').hidden=true;
+  document.querySelector('.rail').hidden=true;document.querySelector('.shell').classList.add('solo');$('roleBtn').hidden=true;$('fBtn').hidden=true;
   $('basis').textContent=B.role==='admin'?'還沒有資料。請先匯入兩份 Excel。':'還沒有資料，請等管理者匯入。';
 }
 if(B.role!=='admin')return;
@@ -44,8 +44,9 @@ $('impForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData();
     $('impOut').innerHTML=`<div class="mform" style="margin-top:12px"><p class="sub" style="margin:0">基準日 ${esc(p.as_of)}｜現任企劃：${esc(p.planners.current.join('、'))}${p.planners.former.length?'｜歷史（隱藏的工作表）：'+esc(p.planners.former.join('、')):''}</p>
       ${p.first?`<div class="dstats"><span class="tag blu">第一次匯入，共 ${c.total} 案</span></div>`:showDiff(p.diff,c)}
       ${p.suggestions.length?`<details class="dsec" open><summary>可能只是改了描述的案件（${p.suggestions.length}）</summary><p class="sub" style="margin:6px 0">勾選的會沿用原本的案號、評語和連結；不勾就當成新案。</p><ul class="dlist">${p.suggestions.map(s=>`<li><label><input type="checkbox" data-new="${s.new.key}" data-old="${s.old.key}" ${s.score>=.75?'checked':''}> ${esc(s.new.desc)}<br><small>原本是 ${esc(s.old.id)} ${esc(s.old.desc)}｜相似 ${Math.round(s.score*100)}%</small></label></li>`).join('')}</ul></details>`:''}
+      ${!p.first&&p.diff.missing.length&&p.diff.new.length?`<details class="dsec" open><summary>手動指認：不見的案件其實是哪一筆新案（${p.diff.missing.length}）</summary><p class="sub" style="margin:6px 0">描述改很多、或是從一位企劃移交給另一位時，系統認不出來。在這裡指認後，會沿用原本的案號、評語和連結。不選就當成真的不見了。</p><ul class="dlist">${p.diff.missing.map(m=>`<li><label>${esc(m.id)} ${esc(m.desc)} <small>${esc(m.src)}</small><br><select data-old="${m.key}" aria-label="${esc(m.desc)} 對應的新案"><option value="">真的不見了</option>${p.diff.new.filter(n=>n.g===m.g).sort((x,y)=>(y.src===m.src)-(x.src===m.src)).map(n=>`<option value="${n.key}">${esc(n.src)}｜${esc(n.desc)}</option>`).join('')}</select></label></li>`).join('')}</ul></details>`:''}
       <div class="mrow"><button class="btn grad" id="applyBtn">套用這次匯入</button></div></div>`;
-    $('applyBtn').onclick=async()=>{const aliases={};$('impOut').querySelectorAll('input[data-new]:checked').forEach(i=>aliases[i.dataset.new]=i.dataset.old);
+    $('applyBtn').onclick=async()=>{const aliases={};$('impOut').querySelectorAll('input[data-new]:checked').forEach(i=>aliases[i.dataset.new]=i.dataset.old);$('impOut').querySelectorAll('select[data-old]').forEach(s=>{if(s.value)aliases[s.value]=s.dataset.old});
       $('applyBtn').disabled=true;$('applyBtn').textContent='套用中…';try{await post('/api/import/apply/'+p.run,{aliases});location.hash='overview';location.reload()}catch(err){say('impOut',err.message,1)}};
   }catch(err){say('impOut',err.message,1)}
   $('impBtn').disabled=false;$('impBtn').textContent='預覽差異'};

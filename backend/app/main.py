@@ -195,7 +195,10 @@ async def import_apply(run_id: int, request: Request, user=Depends(auth.admin)):
         old = _by_key(store.unpack(last.snapshot)) if last else {}
         new = _by_key(snap)
         aliases = dict(json.loads(run.diff).get("auto", {}))
-        aliases.update({k: v for k, v in (body.get("aliases") or {}).items() if k in new and v in old})
+        for k, v in (body.get("aliases") or {}).items():  # 手動指認優先；同一筆舊案只能對應一筆新案
+            if k in new and v in old and k not in old:
+                aliases = {nk: ov for nk, ov in aliases.items() if ov != v and nk != k}
+                aliases[k] = v
         ids = {r.key: r for r in s.scalars(select(store.CaseId))}
         for c in old.values():
             c["id"] = ids[c["key"]].display if c["key"] in ids else ""

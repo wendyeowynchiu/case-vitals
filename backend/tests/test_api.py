@@ -67,3 +67,26 @@ def test_second_import_keeps_case_numbers(client, tmp_path):
     assert [c["desc"] for c in boot["diff"]["new"]] == ["新插入的一列"] and boot["diff"]["new"][0]["id"] == second["新插入的一列"]
     assert "key" not in boot["diff"]["new"][0] and len(boot["prev"]["cases"]) == len(boot["db"]["cases"]) - 1
     assert all(c["id"] for c in boot["prev"]["cases"])
+
+
+def test_manual_match_keeps_case_number_across_planners(client, tmp_path):
+    """描述大改或移交給另一位企劃時，管理者可以手動指認，案號要沿用。"""
+    import openpyxl
+    from test_import import make_book, team_book
+    login(client)
+
+    def run(team_path, aliases=None):
+        with open(team_path, "rb") as t, open(make_book(tmp_path / "m.xlsx"), "rb") as m:
+            p = client.post("/api/import/preview", files={"team": ("t.xlsx", t), "creatives": ("m.xlsx", m)},
+                            data={"as_of": "2030-03-25"}).json()
+        client.post(f"/api/import/apply/{p['run']}", json={"aliases": aliases(p) if aliases else {}})
+        return p, {c["desc"]: c["id"] for c in client.get("/api/bootstrap").json()["db"]["cases"]}
+
+    _, first = run(team_book(tmp_path / "a.xlsx"))
+    path = team_book(tmp_path / "b.xlsx", edit={"還沒開始的案子": lambda r: [r[0], "完全不同的新名字 XYZ"] + r[2:]})
+    pick = lambda p: {p["diff"]["new"][0]["key"]: p["diff"]["missing"][0]["key"]}
+    p, second = run(path, pick)
+    assert p["suggestions"] == [] and p["diff"]["counts"]["missing"] == 1 and p["diff"]["new"][0]["g"] == "p"
+    assert second["完全不同的新名字 XYZ"] == first["還沒開始的案子"]
+    boot = client.get("/api/bootstrap").json()
+    assert boot["diff"]["counts"]["missing"] == 0 and boot["diff"]["counts"]["new"] == 0

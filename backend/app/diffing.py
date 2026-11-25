@@ -5,7 +5,8 @@ from .rules import norm
 
 
 def _brief(c, **extra):
-    out = {"id": c.get("id", ""), "key": c["key"], "src": c["src"], "desc": c["desc"], "status": c.get("status", "")}
+    out = {"id": c.get("id", ""), "key": c["key"], "g": c.get("g", ""), "src": c["src"], "desc": c["desc"],
+           "status": c.get("status", "")}
     out.update(extra)
     return out
 
