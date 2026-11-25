@@ -139,3 +139,9 @@ def test_renamed_case_is_suggested_not_silently_duplicated(tmp_path, snap):
     auto = diffing.auto_aliases(old, new)
     sug = diffing.suggest_aliases(old, new, auto)
     assert len(sug) == 1 and sug[0]["old"]["desc"] == "還沒開始的案子"
+
+
+def test_weekly_recurring_items_are_not_treated_as_renames():
+    old = {"a": {"key": "a", "g": "p", "src": "Alice", "desc": "11/18 Social Media", "done": 0}}
+    new = {"b": {"key": "b", "g": "p", "src": "Alice", "desc": "11/25 Social Media", "done": 0}}
+    assert diffing.suggest_aliases(old, new, {}) == []

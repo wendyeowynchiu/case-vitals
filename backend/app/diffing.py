@@ -1,4 +1,6 @@
 """比對兩次匯入：哪些是新案、哪些結案了、哪些狀態或期限變了、哪些不見了。"""
+import re
+
 from .rules import norm
 
 
@@ -11,6 +13,13 @@ def _brief(c, **extra):
 def _bigrams(s):
     s = norm(s)
     return {s[i:i + 2] for i in range(len(s) - 1)}
+
+
+def _dated_series(a, b):
+    """「11/18 社群貼文」和「11/25 社群貼文」是每週一筆的例行案件，不是同一筆改名。"""
+    strip = lambda s: re.sub(r"\d+", "#", norm(s))
+    digits = lambda s: re.findall(r"\d+", s)
+    return strip(a) == strip(b) and digits(a) != digits(b)
 
 
 def auto_aliases(old, new):
@@ -36,6 +45,8 @@ def suggest_aliases(old, new, taken):
         best = None
         for m, mb in missing:
             if m["src"] != c["src"] or len(b) < 3 or len(mb) < 3:
+                continue
+            if _dated_series(m["desc"], c["desc"]):
                 continue
             j = len(b & mb) / len(b | mb)
             if j >= 0.5 and (best is None or j > best[0]):
