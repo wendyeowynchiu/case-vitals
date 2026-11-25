@@ -1,0 +1,13 @@
+# 公司資料與密鑰一律不進版本庫
+*.xlsx
+*.xlsm
+*.db
+data/
+.env
+*seed*.json
+
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+node_modules/

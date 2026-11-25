@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>行銷案件生命跡象觀測中心</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: 極光玻璃（淡粉）。柔和漸層底、半透明玻璃面板；左側圓角導覽列，主面板內由上而下是標題、本週焦點彩帶、數字、圖表牆。 */
+:root{
+  --bg:#FFF8FA; --aurora:radial-gradient(circle at 84% 2%,#ffeae2,transparent 36%),radial-gradient(circle at 28% 70%,#fbe9f8,transparent 46%),linear-gradient(130deg,#fff0f4,#fff8fa 55%,#fbf6ff);
+  --glass:#ffffff8c; --card:#ffffffd9; --sunk:#e86a9a12; --dlg:#FFFDFE; --text:#4A2F4F; --muted:#77607A; --muted2:#9A869C; --border:#ffffffee; --border2:#F4DEE7;
+  --blue:#B83B74; --blue-l:#f38bb022; --blue-g:linear-gradient(130deg,#ffd6e3,#fde4ef); --ong:#7A1F49; --pink-g:linear-gradient(145deg,#ffa9c2,#ffc6bd); --pink-ink:#5A1030; --ribbon:linear-gradient(110deg,#ffdbe6,#fbe6f3);
+  --coral:#C2334A; --coral-l:#FFE1E6; --orange:#A85A0C; --orange-l:#FFEBD0; --green:#147A57; --green-l:#DDF6EA; --purple:#6A52B8; --purple-l:#EEE8FB;
+  --on:#FFFFFF; --shadow:0 8px 24px #c98aa81a; --shadow-l:0 16px 40px #d58bab22; --glow:0 9px 20px #f08fb43a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --idle:#E3D6DC; --acc:#F29ABB; --acc2:#CFC3F5; --heat:#E0578F; --heat0:#FFF9FB; --grid:#F6E6EC; --axis:#E9D0DA;
+  --mono:ui-monospace,"SF Mono",Consolas,Menlo,monospace;
+   color-scheme:light;
+  --body:"DM Sans","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:14.5px;line-height:1.6}
+body::after{content:"";position:fixed;inset:0;z-index:-1;background:var(--aurora)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.glass{background:var(--glass);border:1px solid var(--border);box-shadow:var(--shadow-l);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.shell{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:78px minmax(0,1fr);gap:18px;align-items:start;padding-block:22px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.rail{border-radius:24px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 18px)}
+.navdot{width:54px;border:1px solid var(--border);background:var(--card);border-radius:16px;display:grid;place-items:center;font-size:19px;line-height:1;padding:9px 0 6px;text-decoration:none;color:var(--text);gap:3px}
+.navdot span{font-size:10.5px;font-weight:700}
+.navdot[aria-current="page"]{background:var(--blue-g);color:var(--ong);border-color:transparent;box-shadow:var(--glow)}
+.main{border-radius:26px;padding:22px 24px 28px;display:flex;flex-direction:column;gap:18px;min-width:0}
+header.top{display:flex;justify-content:space-between;align-items:center;gap:12px 16px;flex-wrap:wrap}
+.welcome{font-size:12px;color:var(--muted);letter-spacing:.08em}
+header.top h1{font-size:26px;margin:2px 0;font-weight:800;letter-spacing:-.3px;text-wrap:balance}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 18px;border-radius:50px;font-size:13px;font-weight:700;border:1px solid var(--border2);background:var(--card);color:var(--blue);cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--blue-l)}
+.btn.grad{background:var(--pink-g);color:var(--pink-ink);border-color:transparent;box-shadow:var(--glow)}
+.btn.sm{padding:4px 12px;font-size:12px;box-shadow:none}
+.note{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:14px;padding:9px 14px;font-size:12.5px}
+.view{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:20px;padding:18px 20px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.card h2{font-size:16px;font-weight:800;margin:0;letter-spacing:-.3px;text-wrap:balance}
+.card .sub{font-size:12.5px;color:var(--muted);margin:-6px 0 0}
+.cols2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.stat{background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:19px;padding:15px 17px;text-align:left;cursor:pointer}
+.stat:hover{transform:translateY(-1px)}
+.stat b{display:block;font-size:30px;font-weight:800;line-height:1.2;letter-spacing:-1.2px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--muted)}
+.stat.hot{background:var(--pink-g);border-color:transparent}
+.stat.hot b{color:var(--on)} .stat.hot span{color:var(--pink-ink);font-weight:700}
+.notice{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.notice li{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border2);align-items:baseline}
+.notice li:last-child{border-bottom:0}
+.notice a,.lnk{color:var(--blue);cursor:pointer;text-decoration:underline}
+.tag{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:50px;white-space:nowrap;background:var(--sunk);color:var(--muted);font-weight:700}
+.tag.red{background:var(--coral-l);color:var(--coral)} .tag.amb{background:var(--orange-l);color:var(--orange)}
+.tag.grn{background:var(--green-l);color:var(--green)} .tag.blu{background:var(--blue-l);color:var(--blue)} .tag.pur{background:var(--purple-l);color:var(--purple)}
+.legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.chart{width:100%;min-width:0;position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--body)}
+#c-line svg{filter:drop-shadow(0 8px 8px #e58fb026)}
+.scrollx{overflow-x:auto}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(70px,132px) 1fr 40px;gap:10px;align-items:center;background:none;border:0;padding:1px 0;text-align:left;cursor:default}
+button.bar{cursor:pointer}
+.bar span{min-width:0;overflow-wrap:anywhere;font-size:13.5px}
+.bar i{display:block;height:12px;background:var(--sunk);border-radius:6px;position:relative}
+.bar i u{position:absolute;inset:0 auto 0 0;background:var(--acc);border-radius:6px}
+.bar i u.o{background:var(--acc2)}
+.bar em{font-style:normal;font-family:var(--mono);font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--text);color:var(--bg);font-size:12px;line-height:1.5;padding:7px 10px;border-radius:10px;max-width:260px}
+#tip b{font-weight:700}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--border2);background:var(--card);border-radius:50px;padding:5px 13px;cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:700}
+.chip[aria-pressed="true"]{background:var(--blue-g);color:var(--ong);border-color:transparent}
+.filters input[type=search],.filters select,.form input,.form select,.form textarea{border:1px solid var(--border2);background:var(--card);border-radius:12px;padding:6px 11px;min-width:0}
+.filters input[type=search]{flex:1 1 200px;border-radius:50px;padding-inline:16px}
+.cases{background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:20px;overflow:hidden}
+.case{display:grid;grid-template-columns:64px minmax(0,1.15fr) 112px 84px minmax(0,1fr);gap:12px;padding:11px 18px;border:0;border-bottom:1px solid var(--border2);align-items:center;cursor:pointer;width:100%;text-align:left;background:none}
+.case:last-child{border-bottom:0}
+.case:hover{background:var(--blue-l)}
+.case.head{cursor:default;font-size:12px;color:var(--muted);background:var(--sunk);font-weight:700}
+.no{font-family:var(--mono);font-size:12px;color:var(--muted2)}
+.ttl{min-width:0}
+.ttl b{display:block;font-weight:700;overflow-wrap:anywhere}
+.ttl small{color:var(--muted);font-size:12px}
+.due{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.due.late{color:var(--coral);font-weight:700}
+.cm{min-width:0;font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.cm .tags{margin-bottom:3px}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+dialog{border:1px solid var(--border);background:var(--dlg);color:var(--text);padding:0;width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 40px);border-radius:24px;box-shadow:var(--shadow-l)}
+dialog::backdrop{background:rgba(70,30,55,.4);backdrop-filter:blur(6px)}
+.dh{background:var(--ribbon);color:var(--ong);padding:16px 22px;display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.dh h3{margin:2px 0 0;font-size:18px;font-weight:800;overflow-wrap:anywhere;text-wrap:balance}
+.dh .no{color:var(--ong);opacity:.8}
+.x{background:rgba(255,255,255,.5);border:0;color:var(--ong);border-radius:50px;cursor:pointer;padding:4px 14px;flex:none;font-weight:700}
+.db{padding:18px 22px;display:flex;flex-direction:column;gap:16px}
+.verdict{background:var(--blue-l);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.verdict small{font-size:12px;color:var(--blue);font-weight:800;letter-spacing:.08em}
+.verdict p{margin:0;font-size:16px;font-weight:700;line-height:1.7}
+.meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;margin:0}
+.meta div{min-width:0}
+.meta dt{font-size:12px;color:var(--muted2)}
+.meta dd{margin:0;overflow-wrap:anywhere}
+h4{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:700}
+.tl{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--border2);display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
+.tl li{overflow-wrap:anywhere;position:relative;font-size:14px}
+.tl li.q{color:var(--muted2)}
+.tl time{font-family:var(--mono);font-size:12px;color:var(--muted2);margin-right:8px}
+.form{display:grid;gap:8px}
+.form .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.form .row>input,.form .row>select{flex:1 1 130px}
+.form textarea{min-height:70px;resize:vertical;width:100%}
+.form label{font-size:12px;color:var(--muted);display:grid;gap:3px;flex:1 1 140px;min-width:0}
+.hist{display:flex;gap:2px;flex-wrap:wrap}
+.hist i{width:13px;height:13px;border-radius:4px;background:var(--sunk)}
+.hist i.p{background:var(--s1)} .hist i.d{background:var(--s3)} .hist i.wt{background:var(--s4)}
+.report{background:var(--sunk);border-radius:16px;padding:16px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.85;margin:0;font-family:var(--body)}
+.foot{font-size:12px;color:var(--muted2)}
+.viewer .adm{display:none!important}
+#flash{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;background:var(--text);color:var(--bg);padding:8px 16px;border-radius:50px;font-size:13px;font-weight:700}
+#flash.bad{background:var(--coral);color:var(--on)}
+.mform{display:grid;gap:10px}
+.mform label{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+.mform input,.mform select{border:1px solid var(--border2);background:var(--card);border-radius:12px;padding:7px 11px;min-width:0;max-width:100%}
+.mrow{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.dstats{display:flex;gap:8px;flex-wrap:wrap}
+.dlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;max-height:260px;overflow-y:auto}
+.dlist li{padding:6px 0;border-bottom:1px solid var(--border2);font-size:13.5px;overflow-wrap:anywhere}
+.dlist li:last-child{border-bottom:0}
+.dlist small{color:var(--muted)}
+details.dsec{border:1px solid var(--border2);border-radius:14px;padding:8px 14px;background:var(--card)}
+details.dsec summary{cursor:pointer;font-weight:700}
+.catmap{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:6px 10px;align-items:center;max-height:300px;overflow-y:auto;font-size:13.5px}
+.catmap span{overflow-wrap:anywhere}
+.catmap small{color:var(--muted2)}
+.catmap select{border:1px solid var(--border2);background:var(--card);border-radius:10px;padding:4px 8px;min-width:0}
+.plist{display:flex;flex-direction:column}
+.plist .pr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border2);font-size:13.5px}
+.plist .pr:last-child{border-bottom:0}
+.plist .pr small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.plist .pr b{font-weight:700;overflow-wrap:anywhere}
+.plist input[type=date]{border:1px solid var(--border2);background:var(--card);border-radius:10px;padding:4px 8px}
+.plist input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue)}
+.srows{display:flex;flex-direction:column;gap:9px}
+.srow{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:13.5px}
+.srow small{display:block;color:var(--muted);font-size:12px}
+.srow em{font-style:normal;font-family:var(--mono);font-size:12.5px;text-align:right}
+.sbar{display:flex;height:18px;gap:2px}
+.sbar span{display:block;min-width:3px;border-radius:5px}
+.ft{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+.ft th{font-size:12px;color:var(--muted);font-weight:700;text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--border2);white-space:nowrap}
+.ft td{padding:8px 10px 8px 0;border-bottom:1px solid var(--border2);vertical-align:top}
+.ft tr:last-child td{border-bottom:0}
+.ft td.n{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.phero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(230px,.72fr);gap:16px;align-items:stretch}
+.pstack{display:grid;grid-template-rows:1fr 1fr;gap:16px;min-width:0}
+.bigc{font-size:52px;line-height:1;font-weight:800;letter-spacing:-2px;color:var(--blue);font-variant-numeric:tabular-nums}
+.leader{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border2)}
+.leader:first-child{border-top:0}
+.leader i{display:grid;place-items:center;width:32px;height:32px;background:var(--blue-g);color:var(--ong);border-radius:50%;font-size:12px;font-weight:800;font-style:normal;flex:none}
+.leader div{min-width:0;flex:1}
+.leader small{display:block;font-size:11.5px;color:var(--muted)}
+.leader em{font-style:normal;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.slabel{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:8px;font-weight:800;font-size:17px;letter-spacing:-.3px}
+.slabel small{font-weight:500;font-size:12px;color:var(--muted)}
+.notice small{color:var(--muted);font-size:12.5px}
+.spot{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:9px 11px;border-radius:14px;background:var(--sunk);text-align:left;border:0;cursor:pointer;width:100%}
+.spot:hover{background:var(--blue-l)}
+.spot .star{color:var(--blue);font-size:16px}
+.spot b{font-weight:700;overflow-wrap:anywhere}
+.spot small{display:block;color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+.spots{display:grid;gap:8px}
+.mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.mgrid .wide{grid-column:span 2}
+.fam{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.fam li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.fam .who{background:var(--orange-l);color:var(--orange);border-radius:12px;padding:8px 12px;font-weight:700}
+@media (max-width:1180px){.phero{grid-template-columns:repeat(2,minmax(0,1fr))}.pstack{grid-column:1/-1;grid-template-rows:auto;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:980px){.cols3,.mgrid{grid-template-columns:1fr}.mgrid .wide{grid-column:auto}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:12px;padding-block:12px 28px}
+  .rail{flex-direction:row;justify-content:center;position:static;padding:10px;border-radius:20px}
+  .main{padding:16px 14px 22px;border-radius:22px}
+  header.top h1{font-size:21px}
+  .cols2,.phero,.pstack{grid-template-columns:1fr}
+  .case{grid-template-columns:1fr auto;gap:4px 10px;padding-inline:14px}.case.head{display:none}
+  .case .no{display:none}.case .ttl{grid-column:1/-1}.case .cm{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){.stat:hover{transform:none}}
+</style>
+
+</head>
+<body>
+<div class="shell">
+<aside class="rail glass" aria-label="主選單">
+  <a class="navdot" href="#overview" data-v="overview">✦<span>總覽</span></a>
+  <a class="navdot" href="#cases" data-v="cases">▥<span>清冊</span></a>
+  <a class="navdot" href="#weekly" data-v="weekly">◫<span>週報</span></a>
+  <a class="navdot adm" href="#manage" data-v="manage">⚙<span>管理</span></a>
+</aside>
+<main class="main glass">
+  <header class="top">
+    <div><div class="welcome">BCHAI 關係機構 / 行銷企劃部</div><h1>行銷案件生命跡象觀測中心 ✳</h1><div class="welcome">專門確認每個案件還活著嗎</div></div>
+    <div class="acts"><button class="chip" id="roleBtn" aria-pressed="false">身分：管理者</button><button class="chip adm" id="fBtn">欄位管理</button><button class="btn grad adm" id="newBtn" hidden>＋ 新增通報</button><button class="chip" id="logoutBtn">登出</button></div>
+  </header>
+
+  <div class="note" id="basis"></div>
+
+  <div id="v-overview" class="view">
+    <div class="stats" id="stats"></div>
+    <div class="phero">
+      <div class="card"><h2>本中心今日公告</h2><ul class="notice" id="notice"></ul></div>
+      <div class="card"><h2>重點觀察名單</h2><p class="sub">異常指數最高的 6 案，點選可調閱</p><ul id="watch" class="notice"></ul></div>
+      <div class="pstack">
+        <div class="card"><h2>本週新增案件數</h2><div class="bigc" id="newCount"></div><p class="sub" id="newSub" style="margin:0"></p></div>
+        <div class="card adm"><h2>本週結案領先者</h2><p class="sub">近 7 日結案件數</p><div id="leaders"></div></div>
+      </div>
+    </div>
+    <div class="slabel">今天要處理 <small>依到期日與風險排序</small></div>
+    <div class="cols3">
+      <div class="card"><h2>即將到期與逾期</h2><p class="sub" id="urgentSub"></p><ul class="notice" id="urgent"></ul></div>
+      <div class="card"><h2>待追蹤案件</h2><p class="sub">沒有進度最久的 5 案，顯示最後狀態與沒有進度的週數</p><ul class="notice" id="follow"></ul></div>
+      <div class="card"><h2>本週動態</h2><p class="sub">最近一次週會與近 7 日的結案</p><ul class="notice" id="dyn"></ul></div>
+    </div>
+    <div class="slabel">團隊工作節奏 <small>進度更新與結案</small></div>
+    <div class="cols3">
+      <div class="card adm"><h2>上週工作量分布</h2><p class="sub">各企劃最近一次週會中，有實質進度的案件數</p><div class="bars" id="work"></div></div>
+      <div class="card"><h2>每週結案量</h2><p class="sub">近 8 週，最右為本週</p><div class="chart" id="c-wk"></div></div>
+      <div class="card"><h2>案件所在階段</h2><p class="sub">列管中案件目前停在哪個狀態，點選可篩選</p><div class="bars" id="byStatus"></div></div>
+    </div>
+    <div class="cols2">
+      <div class="card"><h2>新增案件</h2><p class="sub">近期成立的案件，本中心已完成建檔</p><ul class="notice" id="recent"></ul><div class="adm" hidden><button class="btn grad" id="newBtn2">＋ 新增通報</button></div></div>
+      <div class="card"><h2>本週有進展的專案</h2><p class="sub">最近一次週會有實質進度的專案，值得鼓掌</p><div class="spots" id="focus"></div></div>
+    </div>
+    <div class="slabel">流程與交接 <small>企劃 → 設計 → Coding，每一段花多久、改幾次</small></div>
+    <div class="mgrid">
+      <div class="card wide adm"><h2>完成一個案件要多久</h2><p class="sub">今年已結案的企劃案件，只有管理者看得到。每人一列：結案件數、起案到結案的中位週數，長條是平均每案在各階段停留幾週，三人同一個刻度。</p><div class="chips" id="pfChips"></div><div class="legend" id="lg-stg"></div><div class="srows" id="stgRows"></div><p class="sub" style="margin:0">週數用日曆算：10/29 到 11/19 是四週。當週空白一律算沒有進度。案件大小不校正，可用上方分類切換。</p><p class="sub" id="stgNote" style="margin:0"></p></div>
+      <div class="card"><h2>製作單工作日</h2><p class="sub">今年結案的製作單，從開單到結案的工作日中位數</p><div class="bars" id="wdBars"></div><p class="sub" id="wdNote" style="margin:0"></p></div>
+      <div class="card wide"><h2>已連結的母子案</h2><p class="sub">每個母案在企劃、設計、Coding 各段的時間與修改版次。在案件內頁連結子案後會出現在這裡。</p><div class="scrollx" id="famTable"></div><div class="adm"><button class="btn sm" id="pairBtn">批次配對建議</button></div></div>
+      <div class="card"><h2>各科修改版次</h2><p class="sub">今年有版本紀錄的製作單，平均改到第幾版</p><div class="bars" id="verBars"></div></div>
+      <div class="card"><h2>各分類結案週數</h2><p class="sub">今年已結案的企劃案件，起案到結案的中位週數</p><div class="bars" id="catBars"></div></div>
+      <div class="card"><h2>待補開單日</h2><p class="sub">設計表沒有填申請時間的製作單（今年與進行中）。補上後才算得出設計花了幾天。</p><div class="bigc" id="reqCount"></div><div class="adm"><button class="btn sm" id="reqBtn">逐筆補填</button></div></div>
+    </div>
+    <div class="slabel">工作量與進度品質 <small>歷年資料，滑鼠移上去看明細</small></div>
+    <div class="mgrid">
+      <div class="card wide adm"><h2>停滯熱點</h2><p class="sub">每月週會登錄中「沒有進度」的比例，顏色越深代表越多案件在原地等待。</p><div class="scrollx"><div class="chart" id="c-heat" style="min-width:600px"></div></div></div>
+      <div class="card"><h2>管轄單位</h2><p class="sub">列管中件數，點選可篩選</p><div class="bars" id="bySrc"></div></div>
+      <div class="card wide adm"><h2>企劃每月更新次數</h2><p class="sub">週會上「有實質進度」的登錄筆數，不含「沒有進度」。</p><div class="legend" id="lg-line"></div><div class="chart" id="c-line"></div></div>
+      <div class="card adm"><h2>設計師負載</h2><p class="sub">今年接案數，紫色為尚未結案</p><div class="bars" id="byGd"></div></div>
+      <div class="card"><h2>製作需求每季結案量</h2><p class="sub">美感供應、上線工程、影像後製、文件保養、介面整形</p><div class="legend" id="lg-q"></div><div class="chart" id="c-q"></div></div>
+      <div class="card"><h2>結案月曆</h2><p class="sub">製作需求每月結案件數，看得出展覽季在哪裡</p><div class="chart" id="c-ym"></div></div>
+      <div class="card"><h2>版本輪迴分佈</h2><p class="sub">每案最後改到第幾版，歷年全部案件</p><div class="chart" id="c-ver"></div></div>
+      <div class="card"><h2>海內外語系</h2><p class="sub">製作需求歷年件數，依需求語言</p><div class="bars" id="byLang"></div></div>
+      <div class="card"><h2>展覽與專案戰區</h2><p class="sub">今年製作需求件數</p><div class="bars" id="byEx"></div></div>
+      <div class="card"><h2>歷年案量</h2><p class="sub">依期限或結案年度</p><div class="legend" id="lg-yr"></div><div class="chart" id="c-yr"></div></div>
+    </div>
+    <div class="cols3" id="gfCharts"></div>
+  </div>
+
+  <div id="v-cases" class="view" hidden>
+    <div class="filters"><div class="chips" id="grpChips"></div></div>
+    <div class="filters"><div class="chips" id="srcChips"></div></div>
+    <div class="filters">
+      <div class="chips" id="stateChips"></div>
+      <select id="yrSel" aria-label="年度"></select>
+      <select id="catSel" aria-label="分類"></select>
+      <select id="sortSel" aria-label="排序"><option value="score">依異常指數</option><option value="due">依期限</option><option value="new">新到舊</option></select>
+      <input type="search" id="q" placeholder="搜尋案件、品號、主題、人員、評語">
+      <span class="tag" id="count"></span>
+    </div>
+    <div class="cases" id="list"></div>
+    <button class="btn" id="moreBtn" style="align-self:center">顯示更多</button>
+  </div>
+
+  <div id="v-manage" class="view" hidden></div>
+
+  <div id="v-weekly" class="view" hidden>
+    <div class="card">
+      <h2>週報</h2>
+      <div class="filters"><div class="chips" id="plChips"></div><select id="wkSel" aria-label="週次"></select><div class="chips" id="modeChips"></div><button class="btn sm" id="copyBtn">複製週報</button><span id="copied" class="tag grn" hidden>已複製</span></div>
+      <pre class="report" id="report"></pre>
+    </div>
+    <div class="card"><h2 id="mineTitle">列管中案件</h2><p class="sub">色塊為最近 14 次週會，最左為最新。藍色有進度、綠色完成、黃色等待、灰色沒有進度。</p><div class="cases" id="mine" style="border:0;border-radius:12px;box-shadow:none;background:none"></div></div>
+  </div>
+  <div class="foot">行銷案件生命跡象觀測中心｜評語為本中心觀點，如有雷同，那就是事實。</div>
+</main>
+</div>
+<div id="tip" hidden></div>
+<dialog id="dlg"></dialog>
+<dialog id="fDlg">
+  <div class="dh"><div><span class="no">全站共用</span><h3>欄位管理</h3></div><button class="x" data-close>關閉</button></div>
+  <div class="db"><p style="margin:0;color:var(--muted);font-size:13px">在這裡加一個欄位，全部案件都會多這一欄。下拉選單型的欄位會自動在總覽出現一張統計圖。</p><ul class="fam" id="fList"></ul>
+  <form class="form" id="fAdd"><div class="row"><input id="fa-name" aria-label="欄位名稱" placeholder="欄位名稱，例如：難度" required><select id="fa-type" aria-label="類型"><option value="select">下拉選單</option><option value="text">文字</option><option value="date">日期</option></select></div><div class="row"><input id="fa-opts" aria-label="選項" placeholder="下拉選項，用逗號分開，例如：低,中,高"><button class="btn grad sm" type="submit">新增欄位</button></div></form>
+  <div><h4>分類對照</h4><p style="margin:0 0 8px;color:var(--muted);font-size:13px">企劃週表裡各人自己寫的 Category，對照到全站共用的分類。這是我先猜的，改了會立刻套用到全部案件。</p><div class="catmap" id="catMap"></div></div></div>
+</dialog>
+<dialog id="pairDlg">
+  <div class="dh"><div><span class="no">同承辦人、時間相近、名稱相似</span><h3>批次配對建議</h3></div><button class="x" data-close>關閉</button></div>
+  <div class="db"><p style="margin:0;color:var(--muted);font-size:13px">每一列是「製作單 → 建議掛到的企劃案」。名稱相似度 80% 以上的已先幫你勾好，請看過再按連結。</p>
+  <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn sm" id="pairAll">全選</button><button class="btn sm" id="pairNone">全不選</button><button class="btn grad sm" id="pairGo">連結已勾選</button><span class="tag" id="pairN"></span></div>
+  <div id="pairList" class="plist"></div></div>
+</dialog>
+<dialog id="reqDlg">
+  <div class="dh"><div><span class="no">美感供應科</span><h3>逐筆補填開單日</h3></div><button class="x" data-close>關閉</button></div>
+  <div class="db"><p style="margin:0;color:var(--muted);font-size:13px">已連結母案的排最前面，再來是進行中的，最後是今年已結案的。選了日期就會存起來。</p><div id="reqList" class="plist"></div><button class="btn sm" id="reqMore" style="align-self:center">顯示更多</button></div>
+</dialog>
+<dialog id="newDlg">
+  <div class="dh"><div><span class="no">通報單</span><h3>新增通報</h3></div><button class="x" data-close>關閉</button></div>
+  <form class="db form" id="newForm">
+    <label>案件名稱<input id="n-desc" required placeholder="例如：FAQ-W7 上線"></label>
+    <div class="row"><label>管轄單位<select id="n-src"></select></label><label>主題<input id="n-topic" placeholder="General"></label></div>
+    <div class="row"><label>期限<input id="n-due" type="date"></label><label>目前狀態<input id="n-status" value="Pending"></label></div>
+    <label>評語（可留白，由本中心代擬）<textarea id="n-cm"></textarea></label>
+    <div class="row"><button class="btn grad" type="submit">送出通報</button></div>
+  </form>
+</dialog>
+
+<div id="flash" hidden></div>
+<script>
+(async()=>{
+  const r=await fetch('/api/bootstrap');
+  if(r.status===401){location.href='/login';return}
+  window.__BOOT=await r.json();
+  const load=src=>new Promise((ok,bad)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=bad;document.body.appendChild(e)});
+  if(__BOOT.db)await load('/static/app.js');
+  await load('/static/manage.js');
+})();
+</script>
+</body>
+</html>
