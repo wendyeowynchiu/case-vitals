@@ -81,6 +81,11 @@ def by_desc(snap):
 def test_status_words():
     assert rules.is_done("已完成") and rules.is_done("結案")
     assert not rules.is_done("完成，待上傳") and not rules.is_done("進行中") and not rules.is_done("")
+    # 只是某一段做完，不算整案結案
+    for s in ("設計完成", "圖片完成", "Coding已完成", "EN已完成", "西文完成"):
+        assert not rules.is_done(s), s
+    for s in ("5/7完成", "上線完成", "5/7上線完成", "已付款完成", "設計完成,結案", "已確認, 已完成", "V1 完成"):
+        assert rules.is_done(s), s
 
 
 def test_hidden_sheet_is_former_planner(snap):

@@ -246,6 +246,35 @@ async def import_apply(run_id: int, request: Request, user=Depends(auth.admin)):
         return {"ok": True, "counts": d["counts"]}
 
 
+@app.post("/api/import/rebuild")
+def import_rebuild(user=Depends(auth.admin)):
+    """判讀規則改版後，用當時上傳的檔案內容重算最近一次匯入，不產生新的匯入紀錄。"""
+    with store.session() as s:
+        runs = list(s.scalars(select(store.Run).where(store.Run.status == "applied").order_by(store.Run.id.desc()).limit(2)))
+        if not runs:
+            raise HTTPException(400, "還沒有匯入過")
+        run, prev = runs[0], (runs[1] if len(runs) > 1 else None)
+        snap = snapshot.build(store.unpack(run.team_raw), store.unpack(run.creatives_raw), run.as_of or None)
+        ids = {r.key: r.display for r in s.scalars(select(store.CaseId))}
+        before = {c["key"]: c["done"] for c in store.unpack(run.snapshot)["cases"]}
+        for c in snap["cases"]:
+            c["id"] = ids.get(c["key"], "")
+        changed = sum(1 for c in snap["cases"] if before.get(c["key"]) != c["done"])
+        d = {"counts": {"total": len(snap["cases"])}}
+        if prev:
+            old = _by_key(store.unpack(prev.snapshot))
+            by_id = {c["id"]: k for k, c in old.items() if c.get("id")}
+            new = _by_key(snap)
+            aliases = {k: by_id[c["id"]] for k, c in new.items() if c["id"] in by_id and by_id[c["id"]] != k}
+            d = diffing.diff(old, new, aliases)
+        else:
+            d = diffing.diff({}, _by_key(snap), {})
+        run.snapshot = store.pack(snap)
+        run.diff = json.dumps(d, ensure_ascii=False)
+        s.commit()
+        return {"ok": True, "changed": changed, "counts": d["counts"]}
+
+
 @app.get("/api/import/runs")
 def import_runs(user=Depends(auth.admin)):
     with store.session() as s:

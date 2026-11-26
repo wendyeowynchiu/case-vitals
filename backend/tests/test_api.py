@@ -90,3 +90,24 @@ def test_manual_match_keeps_case_number_across_planners(client, tmp_path):
     assert second["完全不同的新名字 XYZ"] == first["還沒開始的案子"]
     boot = client.get("/api/bootstrap").json()
     assert boot["diff"]["counts"]["missing"] == 0 and boot["diff"]["counts"]["new"] == 0
+
+
+def test_rebuild_keeps_numbers_and_diff(client, tmp_path):
+    import datetime
+    from test_import import make_book, team_book
+    login(client)
+
+    def run(team_path):
+        with open(team_path, "rb") as t, open(make_book(tmp_path / "m.xlsx"), "rb") as m:
+            p = client.post("/api/import/preview", files={"team": ("t.xlsx", t), "creatives": ("m.xlsx", m)},
+                            data={"as_of": "2030-03-25"}).json()
+        client.post(f"/api/import/apply/{p['run']}", json={})
+
+    run(team_book(tmp_path / "a.xlsx"))
+    run(team_book(tmp_path / "b.xlsx", extra_row=["FAQ", "新插入的一列", "Pending", datetime.date(2030, 4, 1), "Pending", None, None]))
+    before = client.get("/api/bootstrap").json()
+    r = client.post("/api/import/rebuild").json()
+    after = client.get("/api/bootstrap").json()
+    assert r["ok"] and r["changed"] == 0
+    assert {c["desc"]: c["id"] for c in before["db"]["cases"]} == {c["desc"]: c["id"] for c in after["db"]["cases"]}
+    assert after["diff"]["counts"] == before["diff"]["counts"] and len(client.get("/api/import/runs").json()) == 2

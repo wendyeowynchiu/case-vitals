@@ -22,7 +22,7 @@ root.innerHTML=`
     <p class="sub" style="margin:0">基準日留白時，用週表最新一欄的日期。逾期天數、沒有進度幾週都從這一天算。</p></form>
   <div id="impOut"></div></div>
 <div class="cols2">
-  <div class="card"><h2>匯入紀錄</h2><p class="sub">每次匯入的異動摘要</p><ul class="dlist" id="runs"></ul></div>
+  <div class="card"><h2>匯入紀錄</h2><p class="sub">每次匯入的異動摘要</p><ul class="dlist" id="runs"></ul><div class="mrow"><button class="btn sm" id="rebuildBtn">用最新規則重算最近一次匯入</button></div><p class="sub" style="margin:0">判讀規則更新後按這個，不用重新上傳檔案，也不會多一筆匯入紀錄。</p><div id="rebuildOut"></div></div>
   <div class="card"><h2>帳號</h2><p class="sub">其他帳號只能看，不能改</p><ul class="dlist" id="users"></ul>
     <form class="mform" id="userForm"><div class="mrow"><label>帳號<input id="u-name" required autocomplete="off"></label><label>密碼（至少 8 個字）<input id="u-pw" type="password" required minlength="8" autocomplete="new-password"></label><button class="btn" type="submit">新增唯讀帳號</button></div></form></div>
 </div>
@@ -52,6 +52,7 @@ $('impForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData();
   $('impBtn').disabled=false;$('impBtn').textContent='預覽差異'};
 /* ---- 匯入紀錄 ---- */
 api('/api/import/runs').then(rs=>{$('runs').innerHTML=rs.length?rs.map(r=>{const c=r.diff.counts||{};return`<li><b>${esc(r.as_of)}</b> <small>${new Date(r.at).toLocaleString('zh-TW',{dateStyle:'medium',timeStyle:'short'})}｜${esc(r.by)}</small><br><small>合計 ${c.total||0}｜新案 ${c.new||0}｜結案 ${c.closed||0}｜狀態變動 ${c.status||0}｜延後 ${c.extended||0}｜不見 ${c.missing||0}</small></li>`}).join(''):'<li>還沒有匯入過。</li>'}).catch(()=>{});
+$('rebuildBtn').onclick=async()=>{$('rebuildBtn').disabled=true;try{const r=await post('/api/import/rebuild');say('rebuildOut',`重算完成，有 ${r.changed} 案的結案判定改變。重新整理後生效。`)}catch(err){say('rebuildOut',err.message,1)}$('rebuildBtn').disabled=false};
 /* ---- 帳號 ---- */
 const loadUsers=()=>api('/api/users').then(us=>{$('users').innerHTML=us.map(u=>`<li>${esc(u.name)} <small>${u.role==='admin'?'管理者':'唯讀'}</small>${u.role==='admin'?'':` <a class="lnk" data-del="${esc(u.name)}">刪除</a>`}</li>`).join('');
   $('users').querySelectorAll('[data-del]').forEach(a=>a.onclick=async()=>{await api('/api/users/'+encodeURIComponent(a.dataset.del),{method:'DELETE'});loadUsers()})});

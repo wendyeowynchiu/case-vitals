@@ -10,7 +10,9 @@ const SRCL={Design:'美感供應科（設計）',Coding:'上線工程科（網�
 const COL={Design:'--s1',Coding:'--s2',Video:'--s3',Support:'--s4',UI:'--s5'};
 PL.forEach((p,i)=>{COL[p]='--s'+(i%5+1)});
 const NPR=/沒有進度|沒進度|無進度/, DONE_RE=/完成|結案|已上線|已結束|取消|cancel|已測試|done|已上傳/i, WAIT_RE=/待|等|pending|已發|暫緩|暫停|處理中|已開單|開單/i;
-const isDone=s=>!!s&&DONE_RE.test(s)&&!/待|等/.test(s);
+const CLOSING=/結案|已上線|已結束|取消|cancel|已測試|done|已上傳|已發布|已發佈/i, FINAL_STEP=/上線|上架|上傳|發布|發佈|更新|印製|付款|寄出|交付|報名|加工|收到|確認/i;
+/* 「設計完成」「圖片完成」只是某一段做完，不算整案結案；「已完成」「上線完成」才算 */
+function isDone(s){if(!s||/待|等/.test(s)||!DONE_RE.test(s))return false;if(CLOSING.test(s))return true;for(const m of s.matchAll(/([^,，;；。\s/()（）]*)完成/g)){const w=m[1].replace(/[\d/\-.:月日號已經都全部]|大致/g,'');if(!w||FINAL_STEP.test(w))return true}return false}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const D=s=>s?new Date(s+'T00:00:00'):null, days=(a,b)=>Math.round((a-b)/864e5);
