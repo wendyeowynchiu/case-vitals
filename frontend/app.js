@@ -328,7 +328,8 @@ function renderCases(){
   chips('stateChips',[['open','列管中'],['done','已結案／歸檔'],['all','全部']],F.state,'data-state');
   $('yrSel').value=F.yr;
   const r=filtered(),extra=[F.st&&'狀態「'+F.st+'」',F.flag==='late'&&'已逾期',F.flag==='soon'&&'7 日內到期'].filter(Boolean);
-  $('count').innerHTML=`共 ${r.length.toLocaleString()} 案`+(extra.length?`｜${esc(extra.join('、'))} <a class="lnk" id="clr">清除</a>`:'');
+  $('count').className=extra.length?'tag amb':'tag';
+  $('count').innerHTML=`共 ${r.length.toLocaleString()} 案`+(extra.length?`｜只顯示：${esc(extra.join('、'))} <a class="lnk" id="clr">清除這個篩選</a>`:'');
   $('list').innerHTML=r.length?HEAD+r.slice(0,F.limit).map(row).join(''):'<div class="empty">查無符合條件的案件。本中心對此結果表示尊重。</div>';
   $('moreBtn').hidden=r.length<=F.limit}
 /* ---------- weekly ---------- */
@@ -443,11 +444,11 @@ document.addEventListener('click',e=>{
   if(t.dataset.id){e.preventDefault();openCase(t.dataset.id);return}
   if(t.dataset.mode){W.mode=t.dataset.mode;renderWeekly();return}
   if(t.dataset.pl){W.pl=t.dataset.pl;W.wk=null;renderWeekly();return}
-  if(t.dataset.grp){F.grp=t.dataset.grp;F.src='all';F.limit=60;renderCases();return}
+  if(t.dataset.grp){F.grp=t.dataset.grp;F.src='all';F.st='';F.flag='';F.limit=60;renderCases();return}
   if(t.dataset.st){goCases({st:t.dataset.st,state:'open'});return}
   if(t.dataset.src&&t.classList.contains('bar')){goCases({src:t.dataset.src,state:'open'});return}
-  if(t.dataset.src){F.src=t.dataset.src;F.limit=60;renderCases();return}
-  if(t.dataset.state){if(t.classList.contains('stat'))goCases({state:t.dataset.state,flag:t.dataset.flag||'',yr:t.dataset.yr||'',sort:t.dataset.flag?'due':'score'});else{F.state=t.dataset.state;F.limit=60;renderCases()}return}
+  if(t.dataset.src){F.src=t.dataset.src;F.st='';F.flag='';F.limit=60;renderCases();return}
+  if(t.dataset.state){if(t.classList.contains('stat'))goCases({state:t.dataset.state,flag:t.dataset.flag||'',yr:t.dataset.yr||'',sort:t.dataset.flag?'due':'score'});else{F.state=t.dataset.state;F.st='';F.flag='';F.limit=60;renderCases()}return}
 });
 $('q').oninput=e=>{F.q=e.target.value;F.limit=60;renderCases()};
 $('yrSel').innerHTML='<option value="">全部年度</option>'+[String(+YR+1),...[...YRS].reverse()].map(y=>`<option>${y}</option>`).join('');
