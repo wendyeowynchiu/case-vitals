@@ -65,6 +65,36 @@ def with_ids(s, snap):
     return snap
 
 
+def _record_due_changes(hist, old, new, aliases, old_as_of, new_as_of):
+    """記下每個案件期限被改過的軌跡：{案號: [[基準日, 期限], ...]}，第一筆是改之前的期限。"""
+    for k, c in new.items():
+        o = old.get(aliases.get(k, k))
+        cid = c.get("id")
+        if not o or not cid or not o.get("due") or not c.get("due") or o["due"] == c["due"]:
+            continue
+        trail = hist.setdefault(cid, [[old_as_of, o["due"]]])
+        if trail[-1][1] != c["due"]:
+            trail.append([new_as_of, c["due"]])
+    return hist
+
+
+def _due_hist(s):
+    """期限軌跡。沒有存過的話，用歷次匯入的快照補算一次。"""
+    hist = store.kv_get(s, "due_hist")
+    if hist is not None:
+        return hist
+    hist, prev = {}, None
+    for run in s.scalars(select(store.Run).where(store.Run.status == "applied").order_by(store.Run.id)):
+        snap = store.unpack(run.snapshot)
+        cur = {c["id"]: c for c in snap["cases"] if c.get("id")}
+        if prev is not None:
+            _record_due_changes(hist, prev[0], cur, {}, prev[1], snap["today"])
+        prev = (cur, snap["today"])
+    store.kv_set(s, "due_hist", hist)
+    s.commit()
+    return hist
+
+
 def _public(snap):
     for c in snap["cases"]:
         c.pop("key", None)
@@ -86,9 +116,10 @@ def bootstrap(user=Depends(auth.current)):
         runs = list(s.scalars(select(store.Run).where(store.Run.status == "applied").order_by(store.Run.id.desc()).limit(2)))
         run = runs[0] if runs else None
         out = {"role": user["role"], "user": user["name"], "db": None, "cm": store.kv_get(s, "cm", {}),
-               "ov": store.kv_get(s, "ov", {}), "lastRun": None, "prev": None, "diff": None}
+               "ov": store.kv_get(s, "ov", {}), "lastRun": None, "prev": None, "diff": None, "dueHist": {}}
         if run:
             snap = _public(with_ids(s, store.unpack(run.snapshot)))
+            out["dueHist"] = _due_hist(s)
             if len(runs) > 1:  # 上一次匯入：前端用它算「和上次相比」
                 out["prev"] = _public(with_ids(s, store.unpack(runs[1].snapshot)))
                 out["diff"] = _public_diff(json.loads(run.diff))
@@ -241,6 +272,10 @@ async def import_apply(run_id: int, request: Request, user=Depends(auth.admin)):
                 c["id"] = ids[c["key"]].display
         run.diff = json.dumps(d, ensure_ascii=False)
         run.snapshot = store.pack(snap)  # 連同案號一起存，之後即使案件改名也查得到當時的案號
+        if last:
+            hist = _due_hist(s)
+            _record_due_changes(hist, old, new, aliases, store.unpack(last.snapshot)["today"], snap["today"])
+            store.kv_set(s, "due_hist", hist)
         run.status = "applied"
         s.commit()
         return {"ok": True, "counts": d["counts"]}

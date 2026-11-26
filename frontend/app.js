@@ -35,7 +35,9 @@ function suggest(c){const want=c.g==='p'?'m':'p';return cases.filter(x=>x.g===wa
 let VIEW=BOOT.role!=='admin';
 /* 把一份快照整理成可以計算的案件清單：套用站上的手動判定，算出最後有進度的日期與沒有進度幾週 */
 function prep(list,db,today){const t0=new Date(today+'T00:00:00'),bid=new Map(list.map(c=>[c.id,c]));
-  list.forEach(c=>{c._db=db;c.y=(c.closed||c.due||c.req||'').slice(0,4)||String(c.yr||'')});
+  list.forEach(c=>{c._db=db;c.y=(c.closed||c.due||c.req||'').slice(0,4)||String(c.yr||'');
+    const tr=(BOOT.dueHist&&BOOT.dueHist[c.id]||[]).filter(e=>e[0]<=today);  // 站上記下的改期軌跡
+    if(tr.length>1){let later=0;for(let i=1;i<tr.length;i++)if(tr[i][1]>tr[i-1][1])later++;if(later&&!c.ext){c.ext=later;c.due0=tr[0][1];c.moved=tr}}});
   for(const id in OV){const o=OV[id],c=bid.get(id);if(!o||!c)continue;if(o.req)c.req=o.req;
     if(o.dn===0||o.dn===1){c.done=o.dn;c.auto=0;c.manual=1;if(o.dn&&!c.closed)c.closed=c.due||c.req||today;if(!o.dn)delete c.closed}}
   list.forEach(c=>{if(c.g!=='p'){c.la=c.req||c.due||'';return}let la=null;for(const[wi,s]of hmap(c)){const w=db.weeks[wi];if(!NPR.test(s)&&(!la||w>la))la=w}c.la=la||c.req||'';
@@ -260,7 +262,7 @@ function renderCharts(){
 let F={grp:'all',src:'all',state:'open',yr:'',k:'',q:'',sort:'score',limit:60,flag:'',st:''};
 function renderOverview(){
   const o=open(),late=o.filter(c=>metrics(c).late),soon=o.filter(c=>metrics(c).soon),c26=cases.filter(c=>c.done===1&&(c.closed||'').startsWith(YR));
-  $('stats').innerHTML=[['列管中',o.length,'','open','',''],['已逾期',late.length,'hot','open','late',''],['7 日內到期',soon.length,'','open','soon',''],[YR+' 年結案',c26.length,'','done','',YR],['歷年總案量',cases.length.toLocaleString(),'','all','','']]
+  $('stats').innerHTML=[['列管中',o.length,'','open','',''],['已逾期｜照原訂期限 '+o.filter(c=>lateOrig(c,TODAY)).length,late.length,'hot','open','late',''],['7 日內到期',soon.length,'','open','soon',''],[YR+' 年結案',c26.length,'','done','',YR],['歷年總案量',cases.length.toLocaleString(),'','all','','']]
     .map(s=>`<button class="stat ${s[2]}" data-state="${s[3]}" data-flag="${s[4]}" data-yr="${s[5]}"><b>${s[1]}</b><span>${s[0]}</span></button>`).join('');
   const cnt=f=>[...o.reduce((m,c)=>m.set(f(c),(m.get(f(c))||0)+1),new Map())].sort((a,b)=>b[1]-a[1]);
   hbars('bySrc',cnt(c=>c.src).map(r=>({k:r[0],l:SRC[r[0]],v:r[1],t:`<b>${SRC[r[0]]}</b><br>列管中 ${r[1]} 件`})),'data-src');
@@ -436,19 +438,21 @@ $('roleBtn').onclick=()=>{VIEW=!VIEW;document.body.classList.toggle('viewer',VIE
 let PV={pl:null,sort:'risk'};
 const histCls=h=>!h||NPR.test(h)?'':isDone(h)?'d':WAIT_RE.test(h)?'wt':'p';
 const lateAt=(c,today)=>!c.done&&c.due&&!HOLD.test(c.status||'')?Math.max(0,days(D(today),D(c.due))):0;
+const lateOrig=(c,today)=>!c.done&&c.due0&&!HOLD.test(c.status||'')?Math.max(0,days(D(today),D(c.due0))):lateAt(c,today);
 const soonAt=(c,today)=>{if(c.done||!c.due||HOLD.test(c.status||''))return false;const d=days(D(c.due),D(today));return d>=0&&d<=7};
 const stageNow=c=>stageOf(c.status)||'plan';
 function planStats(list,db,today,p){const op=list.filter(c=>c.src===p&&!c.done),wi=(db.shw[p]||[])[0],mv=c=>{const s=hmap(c).get(wi);return s&&!NPR.test(s)};
-  return{open:op.length,late:op.filter(c=>lateAt(c,today)).length,soon:op.filter(c=>soonAt(c,today)).length,stall:op.filter(c=>(c.stall||0)>=2).length,moved:op.filter(mv).length,hand:op.filter(c=>['plan','queue'].includes(stageNow(c))).length}}
+  return{open:op.length,late:op.filter(c=>lateAt(c,today)).length,lateO:op.filter(c=>lateOrig(c,today)).length,pushed:op.filter(c=>c.ext).length,soon:op.filter(c=>soonAt(c,today)).length,stall:op.filter(c=>(c.stall||0)>=2).length,moved:op.filter(mv).length,hand:op.filter(c=>['plan','queue'].includes(stageNow(c))).length}}
 function renderPlan(){
   if(BOOT.role!=='admin')return;if(!PV.pl||!PLC.includes(PV.pl))PV.pl=PLC[0];
   const st=Object.fromEntries(PLC.map(p=>[p,planStats(cases,DB,TODAY,p)])),sp=PREV&&Object.fromEntries(PLC.map(p=>[p,planStats(PREV,BOOT.prev,BOOT.prev.today,p)]));
   const dn=k=>p=>DF?DF[k].filter(x=>x.src===p).length:null;
-  const rows=[['列管中',p=>st[p].open,p=>sp&&sp[p].open],['已逾期',p=>st[p].late,p=>sp&&sp[p].late],['7 日內到期',p=>st[p].soon,p=>sp&&sp[p].soon],['沒有進度 2 週以上',p=>st[p].stall,p=>sp&&sp[p].stall],['最近一次週會有進度',p=>st[p].moved,p=>sp&&sp[p].moved],['在自己手上（企劃作業、已接收未開始）',p=>st[p].hand,p=>sp&&sp[p].hand],['這次匯入新增',dn('new')],['這次匯入結案',dn('closed')],['這次匯入期限延後',dn('extended')]];
+  const saved=p=>DF?DF.extended.filter(x=>x.src===p&&x.before<TODAY&&byId.has(x.id)&&!byId.get(x.id).done).length:null;
+  const rows=[['列管中',p=>st[p].open,p=>sp&&sp[p].open],['已逾期（照現在的期限）',p=>st[p].late,p=>sp&&sp[p].late],['已逾期（照原訂期限）',p=>st[p].lateO,p=>sp&&sp[p].lateO],['期限延後過的案件',p=>st[p].pushed,p=>sp&&sp[p].pushed],['這次靠延後解除逾期',saved],['7 日內到期',p=>st[p].soon,p=>sp&&sp[p].soon],['沒有進度 2 週以上',p=>st[p].stall,p=>sp&&sp[p].stall],['最近一次週會有進度',p=>st[p].moved,p=>sp&&sp[p].moved],['在自己手上（企劃作業、已接收未開始）',p=>st[p].hand,p=>sp&&sp[p].hand],['這次匯入新增',dn('new')],['這次匯入結案',dn('closed')],['這次匯入期限延後',dn('extended')]];
   $('planCmp').innerHTML=`<table class="ft"><thead><tr><th></th>${PLC.map(p=>`<th>${esc(p)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td>${PLC.map(p=>{const v=r[1](p);return`<td class="n">${v===null?'—':v+(r[2]&&sp?dl(v,r[2](p)):'')}</td>`}).join('')}</tr>`).join('')}</tbody></table>`;
   chips('pvChips',PLC.map(p=>[p,p]),PV.pl,'data-pv');
   const p=PV.pl,s=st[p],q=sp&&sp[p],op=cases.filter(c=>c.src===p&&!c.done);
-  $('planStats').innerHTML=[['列管中',s.open,q&&q.open,''],['已逾期',s.late,q&&q.late,'hot'],['7 日內到期',s.soon,q&&q.soon,''],['沒有進度 2 週以上',s.stall,q&&q.stall,''],['這次新增',DF?dn('new')(p):'—',null,''],['這次結案',DF?dn('closed')(p):'—',null,'']].map(x=>`<div class="stat ${x[3]}" style="cursor:default"><b>${x[1]}</b><span>${x[0]}${x[2]!==null&&x[2]!==undefined&&q?dl(x[1],x[2]):''}</span></div>`).join('');
+  $('planStats').innerHTML=[['列管中',s.open,q&&q.open,''],['已逾期',s.late,q&&q.late,'hot'],['照原訂期限逾期',s.lateO,q&&q.lateO,''],['7 日內到期',s.soon,q&&q.soon,''],['沒有進度 2 週以上',s.stall,q&&q.stall,''],['這次新增',DF?dn('new')(p):'—',null,''],['這次結案',DF?dn('closed')(p):'—',null,'']].map(x=>`<div class="stat ${x[3]}" style="cursor:default"><b>${x[1]}</b><span>${x[0]}${x[2]!==null&&x[2]!==undefined&&q?dl(x[1],x[2]):''}</span></div>`).join('');
   const SGN=STG.filter(g=>g[0]!=='done'),cnt={};op.forEach(c=>{const k=stageNow(c);cnt[k]=(cnt[k]||0)+1});
   $('planStage').innerHTML=SGN.filter(g=>cnt[g[0]]).map(g=>`<span style="flex:${cnt[g[0]]};background:var(${g[2]})" data-tip="${esc(`<b>${g[1]}</b><br>${cnt[g[0]]} 案`)}"></span>`).join('');
   $('planStageLg').innerHTML=SGN.filter(g=>cnt[g[0]]).map(g=>`<span><i style="background:var(${g[2]})"></i>${g[1]} ${cnt[g[0]]}</span>`).join('');
@@ -467,7 +471,7 @@ function renderPlan(){
   const w8=(DB.shw[p]||[]).slice(0,8);
   $('planListTitle').textContent=`${p} 列管中案件（${op.length}）`;
   $('planList').innerHTML=op.length?`<table class="ft"><thead><tr><th>案件</th><th>分類</th><th>階段與狀態</th><th>期限</th><th>沒有進度</th><th>近 8 次週會</th><th>這次匯入</th></tr></thead><tbody>${[...op].sort(sorters[PV.sort]).map(c=>{const late=lateAt(c,TODAY),g=STGN[stageNow(c)],hm=hmap(c);
-    return`<tr><td><a class="lnk" data-id="${c.id}">${esc(c.desc)}</a><br><small style="color:var(--muted2);font-family:var(--mono)">${c.id}</small></td><td>${esc(catOf(c))}</td><td><span class="tag" style="border-left:4px solid var(${g[2]})">${g[1]}</span><br><small style="color:var(--muted)">${esc(c.status||'未填')}</small></td><td class="n">${c.due?md(c.due):esc(c.duetxt||'未定')}${late?`<br><span class="tag red">逾期 ${late} 日</span>`:soonAt(c,TODAY)?'<br><span class="tag pur">7 日內</span>':HOLD.test(c.status||'')?'<br><span class="tag">暫緩</span>':''}</td><td class="n">${(c.stall||0)>=2?`<span class="tag ${c.stall>=4?'red':'amb'}">${c.stall} 週</span>`:'—'}</td><td><span class="hist">${w8.map(i=>`<i class="${histCls(hm.get(i))}" data-tip="${esc(WEEKS[i]+'：'+(hm.get(i)||'未登錄'))}"></i>`).join('')}</span></td><td>${isNew.has(c.id)?'<span class="tag blu">新增</span>':''}${chg.has(c.id)?`<span class="tag">狀態</span> <small style="color:var(--muted)">${esc(chg.get(c.id)||'未填')} → ${esc(c.status||'未填')}</small>`:''}${ext.has(c.id)?`${chg.has(c.id)?'<br>':''}<span class="tag amb">延後</span> <small style="color:var(--muted)">${md(ext.get(c.id)[0])} → ${md(ext.get(c.id)[1])}</small>`:''}${moved(c)?'':'—'}</td></tr>`}).join('')}</tbody></table>`:'<div class="empty">目前沒有列管中的案件。</div>';
+    return`<tr><td><a class="lnk" data-id="${c.id}">${esc(c.desc)}</a><br><small style="color:var(--muted2);font-family:var(--mono)">${c.id}</small></td><td>${esc(catOf(c))}</td><td><span class="tag" style="border-left:4px solid var(${g[2]})">${g[1]}</span><br><small style="color:var(--muted)">${esc(c.status||'未填')}</small></td><td class="n">${c.due?md(c.due):esc(c.duetxt||'未定')}${c.ext?`<br><small style="color:var(--muted);font-family:var(--body)">原訂 ${md(c.due0)}，延後 ${c.ext} 次</small>`:''}${late?`<br><span class="tag red">逾期 ${late} 日</span>`:soonAt(c,TODAY)?'<br><span class="tag pur">7 日內</span>':HOLD.test(c.status||'')?'<br><span class="tag">暫緩</span>':''}</td><td class="n">${(c.stall||0)>=2?`<span class="tag ${c.stall>=4?'red':'amb'}">${c.stall} 週</span>`:'—'}</td><td><span class="hist">${w8.map(i=>`<i class="${histCls(hm.get(i))}" data-tip="${esc(WEEKS[i]+'：'+(hm.get(i)||'未登錄'))}"></i>`).join('')}</span></td><td>${isNew.has(c.id)?'<span class="tag blu">新增</span>':''}${chg.has(c.id)?`<span class="tag">狀態</span> <small style="color:var(--muted)">${esc(chg.get(c.id)||'未填')} → ${esc(c.status||'未填')}</small>`:''}${ext.has(c.id)?`${chg.has(c.id)?'<br>':''}<span class="tag ${ext.get(c.id)[0]<TODAY?'red':'amb'}">${ext.get(c.id)[0]<TODAY?'延後解除逾期':'延後'}</span> <small style="color:var(--muted)">${md(ext.get(c.id)[0])} → ${md(ext.get(c.id)[1])}</small>`:''}${moved(c)?'':'—'}</td></tr>`}).join('')}</tbody></table>`:'<div class="empty">目前沒有列管中的案件。</div>';
   const li2=(tg,cl,x,sub)=>`<li><span class="tag ${cl}">${tg}</span><span>${byId.has(x.id)?`<a data-id="${x.id}">${esc(x.desc)}</a>`:esc(x.desc)}<br><small>${esc(sub)}</small></span></li>`;
   $('planDiff').innerHTML=DF?(DF.closed.filter(x=>x.src===p).map(x=>li2('結案','grn',x,(x.before||'未填')+' → '+(x.status||'結案'))).concat(DF.new.filter(x=>x.src===p).map(x=>li2('新增','blu',x,x.status||'未填')),DF.extended.filter(x=>x.src===p).map(x=>li2('延後','amb',x,md(x.before)+' → '+md(x.after))),DF.missing.filter(x=>x.src===p).map(x=>li2('不見了','red',x,'Excel 裡已經沒有這一列'))).join('')||'<li>這次匯入沒有新增、結案或延後。</li>'):'<li>第二次匯入之後，這裡會列出和上一次的差異。</li>';
   $('planDiff').style.cssText='max-height:360px;overflow-y:auto';

@@ -111,3 +111,29 @@ def test_rebuild_keeps_numbers_and_diff(client, tmp_path):
     assert r["ok"] and r["changed"] == 0
     assert {c["desc"]: c["id"] for c in before["db"]["cases"]} == {c["desc"]: c["id"] for c in after["db"]["cases"]}
     assert after["diff"]["counts"] == before["diff"]["counts"] and len(client.get("/api/import/runs").json()) == 2
+
+
+def test_deadline_changes_are_remembered(client, tmp_path):
+    """期限被往後改時要留下原訂期限，逾期才不會被改期限洗掉。"""
+    import datetime
+    from test_import import make_book, team_book
+    login(client)
+
+    def run(team_path, as_of):
+        with open(team_path, "rb") as t, open(make_book(tmp_path / "m.xlsx"), "rb") as m:
+            p = client.post("/api/import/preview", files={"team": ("t.xlsx", t), "creatives": ("m.xlsx", m)},
+                            data={"as_of": as_of}).json()
+        client.post(f"/api/import/apply/{p['run']}", json={})
+
+    run(team_book(tmp_path / "a.xlsx"), "2030-03-25")
+    later = {"新官網": lambda r: r[:3] + [datetime.date(2030, 5, 20)] + r[4:]}
+    run(team_book(tmp_path / "b.xlsx", edit=later), "2030-04-08")
+    boot = client.get("/api/bootstrap").json()
+    cid = next(c["id"] for c in boot["db"]["cases"] if c["desc"] == "新官網")
+    assert boot["dueHist"] == {cid: [["2030-03-25", "2030-04-01"], ["2030-04-08", "2030-05-20"]]}
+    # 沒存過軌跡時（舊資料），會用歷次快照補算出相同結果
+    from app import store
+    with store.session() as s:
+        s.delete(s.get(store.KV, "due_hist"))
+        s.commit()
+    assert client.get("/api/bootstrap").json()["dueHist"] == boot["dueHist"]
