@@ -8,6 +8,8 @@ from .rules import NO_PROGRESS
 
 MODEL = os.environ.get("COMMENT_MODEL", "claude-haiku-5-5")
 BATCH = 20
+UNITS = {"Design": "多媒體設計（平面）", "Video": "多媒體設計（影片）", "UI": "多媒體設計（UI）", "Coding": "MIS（Coding）",
+         "Support": "MIS（Support）"}
 SYSTEM = """你是「行銷案件生命跡象觀測中心」的官方評語撰寫員，自稱「本中心」。
 替每個工作案件寫一句評語：語氣像正式公文，內容其實在幽默地吐槽，正經、有趣、不刻薄。
 規則：
@@ -24,7 +26,7 @@ SYSTEM = """你是「行銷案件生命跡象觀測中心」的官方評語撰�
 
 def facts(case, vocab, weeks, today):
     """把一個案件濃縮成幾個事實，給模型參考。"""
-    f = {"案號": case["id"], "單位": case["src"], "名稱": case["desc"], "狀態": case.get("status") or "未填"}
+    f = {"案號": case["id"], "單位": UNITS.get(case["src"], "行銷企劃"), "名稱": case["desc"], "狀態": case.get("status") or "未填"}
     if case.get("topic"):
         f["分類"] = case["topic"]
     if case["done"]:

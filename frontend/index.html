@@ -211,6 +211,7 @@ details.dsec summary{cursor:pointer;font-weight:700}
   <a class="navdot" href="#overview" data-v="overview">✦<span>總覽</span></a>
   <a class="navdot" href="#cases" data-v="cases">▥<span>清冊</span></a>
   <a class="navdot" href="#weekly" data-v="weekly">◫<span>週報</span></a>
+  <a class="navdot adm" href="#plan" data-v="plan">☰<span>企劃</span></a>
   <a class="navdot adm" href="#manage" data-v="manage">⚙<span>管理</span></a>
 </aside>
 <main class="main glass">
@@ -263,7 +264,7 @@ details.dsec summary{cursor:pointer;font-weight:700}
       <div class="card"><h2>管轄單位</h2><p class="sub">列管中件數，點選可篩選</p><div class="bars" id="bySrc"></div></div>
       <div class="card wide adm"><h2>企劃每月更新次數</h2><p class="sub">週會上「有實質進度」的登錄筆數，不含「沒有進度」。</p><div class="legend" id="lg-line"></div><div class="chart" id="c-line"></div></div>
       <div class="card adm"><h2>設計師負載</h2><p class="sub">今年接案數，紫色為尚未結案</p><div class="bars" id="byGd"></div></div>
-      <div class="card"><h2>製作需求每季結案量</h2><p class="sub">美感供應、上線工程、影像後製、文件保養、介面整形</p><div class="legend" id="lg-q"></div><div class="chart" id="c-q"></div></div>
+      <div class="card"><h2>製作需求每季結案量</h2><p class="sub">多媒體設計（平面、影片、UI）與 MIS（Coding、Support）</p><div class="legend" id="lg-q"></div><div class="chart" id="c-q"></div></div>
       <div class="card"><h2>結案月曆</h2><p class="sub">製作需求每月結案件數，看得出展覽季在哪裡</p><div class="chart" id="c-ym"></div></div>
       <div class="card"><h2>版本輪迴分佈</h2><p class="sub">每案最後改到第幾版，歷年全部案件</p><div class="chart" id="c-ver"></div></div>
       <div class="card"><h2>海內外語系</h2><p class="sub">製作需求歷年件數，依需求語言</p><div class="bars" id="byLang"></div></div>
@@ -286,6 +287,22 @@ details.dsec summary{cursor:pointer;font-weight:700}
     </div>
     <div class="cases" id="list"></div>
     <button class="btn" id="moreBtn" style="align-self:center">顯示更多</button>
+  </div>
+
+  <div id="v-plan" class="view" hidden>
+    <div class="card"><h2>企劃總表</h2><p class="sub">每位企劃並排。紫色小標是和上一次匯入相比的差距。這一頁只有管理者看得到。</p><div class="scrollx" id="planCmp"></div></div>
+    <div class="filters"><div class="chips" id="pvChips"></div></div>
+    <div class="stats" id="planStats" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))"></div>
+    <div class="cols3">
+      <div class="card"><h2>手上的案件在哪個階段</h2><p class="sub" id="planHandSub"></p><div class="sbar" id="planStage" style="height:22px"></div><div class="legend" id="planStageLg"></div></div>
+      <div class="card"><h2>列管中案件的分類</h2><p class="sub">依共用分類</p><div class="bars" id="planCat"></div></div>
+      <div class="card"><h2>每週有進度的案件數</h2><p class="sub">近 12 次週會，最右為最新</p><div class="chart" id="planWk"></div></div>
+    </div>
+    <div class="card"><h2 id="planListTitle">列管中案件</h2><div class="filters"><div class="chips" id="psChips"></div></div><div class="scrollx" id="planList"></div></div>
+    <div class="cols2">
+      <div class="card"><h2>這次匯入的異動</h2><p class="sub">和上一次匯入相比，這位企劃的結案、新增、延後</p><ul class="notice" id="planDiff"></ul></div>
+      <div class="card"><h2>最近一次週報原文</h2><p class="sub" id="planRepSub"></p><pre class="report" id="planRep"></pre></div>
+    </div>
   </div>
 
   <div id="v-manage" class="view" hidden></div>
@@ -316,7 +333,7 @@ details.dsec summary{cursor:pointer;font-weight:700}
   <div id="pairList" class="plist"></div></div>
 </dialog>
 <dialog id="reqDlg">
-  <div class="dh"><div><span class="no">美感供應科</span><h3>逐筆補填開單日</h3></div><button class="x" data-close>關閉</button></div>
+  <div class="dh"><div><span class="no">多媒體設計（平面）</span><h3>逐筆補填開單日</h3></div><button class="x" data-close>關閉</button></div>
   <div class="db"><p style="margin:0;color:var(--muted);font-size:13px">已連結母案的排最前面，再來是進行中的，最後是今年已結案的。選了日期就會存起來。</p><div id="reqList" class="plist"></div><button class="btn sm" id="reqMore" style="align-self:center">顯示更多</button></div>
 </dialog>
 <dialog id="newDlg">

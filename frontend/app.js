@@ -4,9 +4,10 @@ const cases=DB.cases;
 const TODAY=BOOT.today, YR=TODAY.slice(0,4), T0=new Date(TODAY+'T00:00:00');
 const PLC=BOOT.planners.current, PL=[...PLC,...BOOT.planners.former], MK=['Design','Coding','Video','Support','UI'];
 const HOLD=/暫緩|暫停|hold/i;
-const SRC={Design:'美感供應科',Coding:'上線工程科',Video:'影像後製科',Support:'文件保養科',UI:'介面整形科'};
-PL.forEach(p=>{SRC[p]='萬事承辦科 '+p+(PLC.includes(p)?'':'（歷史）')});
-const SRCL={Design:'美感供應科（設計）',Coding:'上線工程科（網頁）',Video:'影像後製科（影片）',Support:'文件保養科（Support）',UI:'介面整形科（UI）'};
+const SRC={Design:'多媒體設計（平面）',Video:'多媒體設計（影片）',UI:'多媒體設計（UI）',Coding:'MIS（Coding）',Support:'MIS（Support）'};
+PL.forEach(p=>{SRC[p]='行銷企劃 '+p+(PLC.includes(p)?'':'（歷史）')});
+const DEPT=c=>c.g==='p'?'plan':(c.src==='Coding'||c.src==='Support')?'mis':'mm';
+const SRCL=SRC;
 const COL={Design:'--s1',Coding:'--s2',Video:'--s3',Support:'--s4',UI:'--s5'};
 PL.forEach((p,i)=>{COL[p]='--s'+(i%5+1)});
 const NPR=/沒有進度|沒進度|無進度/, DONE_RE=/完成|結案|已上線|已結束|取消|cancel|已測試|done|已上傳/i, WAIT_RE=/待|等|pending|已發|暫緩|暫停|處理中|已開單|開單/i;
@@ -110,7 +111,7 @@ function renderPipeline(){
   const noReq=cases.filter(c=>c.src==='Design'&&!c.req&&(c.yr===+YR||!c.done));$('reqCount').textContent=noReq.length;
   const wdm=mWd(cases,TODAY),wdP=PREV&&mWd(PREV,PT);
   hbars('wdBars',MK.filter(u=>wdm[u].n>=3).map(u=>({l:SRC[u],v:wdm[u].v,d:wdP&&wdP[u].n>=3?dl(wdm[u].v,wdP[u].v):'',t:`<b>${SRC[u]}</b><br>中位數 ${wdm[u].v} 個工作日（${wdm[u].n} 件）`})));
-  $('wdNote').textContent=wdm.Design.n>=3?'':'美感供應科沒有出現，是因為設計表幾乎沒有填「申請時間」，算不出工作日。';
+  $('wdNote').textContent=wdm.Design.n>=3?'':'多媒體設計（平面）沒有出現，是因為設計表幾乎沒有填「申請時間」，算不出工作日。';
   const vm=mVer(cases,TODAY),vP=PREV&&mVer(PREV,PT);
   hbars('verBars',MK.filter(u=>vm[u].n>=3).map(u=>({l:SRC[u],v:vm[u].v,d:vP&&vP[u].n>=3?dl(vm[u].v,vP[u].v,1):'',t:`<b>${SRC[u]}</b><br>平均第 ${vm[u].v} 版，最高第 ${vm[u].m} 版<br>${vm[u].all} 件中有 ${vm[u].n} 件留下版本紀錄`})));
   const ps=[...KC.keys()].map(id=>byId.get(id)).filter(Boolean);
@@ -248,7 +249,7 @@ function renderCharts(){
   heatYM();verChart();wkChart();
   const yrs=YRS;
   const ser={P:yrs.map(y=>cases.filter(c=>c.g==='p'&&c.y===y).length),M:yrs.map(y=>cases.filter(c=>c.g==='m'&&c.y===y).length)};
-  COL.P='--s1';COL.M='--s2';SRC.P='萬事承辦科（企劃追蹤）';SRC.M='製作單';
+  COL.P='--s1';COL.M='--s2';SRC.P='行銷企劃';SRC.M='多媒體設計與 MIS';
   $('lg-yr').innerHTML=['P','M'].map(n=>`<span><i style="background:${cv(COL[n])}"></i>${SRC[n]}</span>`).join('');
   stacked('c-yr',yrs,ser,['P','M'],'歷年案量堆疊長條圖',lb=>lb);
   hbars('byLang',CH.lang.slice(0,12).map(r=>({l:r[0],v:r[1],t:`<b>${r[0]}</b><br>${r[1]} 件`})));
@@ -315,7 +316,7 @@ function renderOverview(){
 function chips(el,items,cur,attr){$(el).innerHTML=items.map(i=>`<button class="chip" ${attr}="${i[0]}" aria-pressed="${i[0]===cur}">${i[1]}</button>`).join('')}
 function filtered(){
   const q=F.q.trim().toLowerCase();
-  let r=cases.filter(c=>(F.grp==='all'||c.g===F.grp)&&(F.src==='all'||c.src===F.src)&&(F.state==='all'||(F.state==='open')===!c.done)&&(!F.yr||c.y===F.yr)&&(!F.k||catOf(c)===F.k)&&(!F.st||c.status===F.st)
+  let r=cases.filter(c=>(F.grp==='all'||DEPT(c)===F.grp)&&(F.src==='all'||c.src===F.src)&&(F.state==='all'||(F.state==='open')===!c.done)&&(!F.yr||c.y===F.yr)&&(!F.k||catOf(c)===F.k)&&(!F.st||c.status===F.st)
     &&(!F.flag||(F.flag==='late'?metrics(c).late:metrics(c).soon))
     &&(!q||[c.id,c.desc,c.sku,c.topic,c.cat,c.kind,c.pic,c.gd,c.src,c.status,cmOf(c),...Object.values((OV[c.id]||{}).fv||{})].join(' ').toLowerCase().includes(q)));
   const big='9999';
@@ -324,8 +325,8 @@ function filtered(){
   else r.sort((a,b)=>(b.req||b.closed||b.due||'').localeCompare(a.req||a.closed||a.due||''));
   return r}
 function renderCases(){
-  chips('grpChips',[['all','全部'],['p','萬事承辦科（企劃追蹤）'],['m','製作單（設計／網頁／影片／文件／UI）']],F.grp,'data-grp');
-  const subs=F.grp==='p'?PL:F.grp==='m'?MK:[...PL,...MK];
+  chips('grpChips',[['all','全部'],['plan','行銷企劃'],['mm','多媒體設計'],['mis','MIS']],F.grp,'data-grp');
+  const subs=F.grp==='plan'?PL:F.grp==='mm'?['Design','Video','UI']:F.grp==='mis'?['Coding','Support']:[...PL,'Design','Video','UI','Coding','Support'];
   chips('srcChips',[['all','全部單位'],...subs.map(k=>[k,SRCL[k]||SRC[k]])],F.src,'data-src');
   chips('stateChips',[['open','列管中'],['done','已結案／歸檔'],['all','全部']],F.state,'data-state');
   $('yrSel').value=F.yr;
@@ -431,15 +432,59 @@ $('reqMore').onclick=()=>{reqLim+=60;renderReq()};
 $('fAdd').onsubmit=e=>{e.preventDefault();const type=$('fa-type').value,opts=$('fa-opts').value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean);
   GF().push({k:'f'+Date.now().toString(36),name:$('fa-name').value.trim(),type:type==='select'&&!opts.length?'text':type,opts});save();e.target.reset();renderFields();renderOverview()};
 $('roleBtn').onclick=()=>{VIEW=!VIEW;document.body.classList.toggle('viewer',VIEW);setTimeout(renderCharts,0);$('roleBtn').textContent=VIEW?'身分：訪客（唯讀預覽）':'身分：管理者';$('roleBtn').setAttribute('aria-pressed',VIEW)};
+/* ---------- 企劃頁：一次掌握每位企劃手上的案件 ---------- */
+let PV={pl:null,sort:'risk'};
+const histCls=h=>!h||NPR.test(h)?'':isDone(h)?'d':WAIT_RE.test(h)?'wt':'p';
+const lateAt=(c,today)=>!c.done&&c.due&&!HOLD.test(c.status||'')?Math.max(0,days(D(today),D(c.due))):0;
+const soonAt=(c,today)=>{if(c.done||!c.due||HOLD.test(c.status||''))return false;const d=days(D(c.due),D(today));return d>=0&&d<=7};
+const stageNow=c=>stageOf(c.status)||'plan';
+function planStats(list,db,today,p){const op=list.filter(c=>c.src===p&&!c.done),wi=(db.shw[p]||[])[0],mv=c=>{const s=hmap(c).get(wi);return s&&!NPR.test(s)};
+  return{open:op.length,late:op.filter(c=>lateAt(c,today)).length,soon:op.filter(c=>soonAt(c,today)).length,stall:op.filter(c=>(c.stall||0)>=2).length,moved:op.filter(mv).length,hand:op.filter(c=>['plan','queue'].includes(stageNow(c))).length}}
+function renderPlan(){
+  if(BOOT.role!=='admin')return;if(!PV.pl||!PLC.includes(PV.pl))PV.pl=PLC[0];
+  const st=Object.fromEntries(PLC.map(p=>[p,planStats(cases,DB,TODAY,p)])),sp=PREV&&Object.fromEntries(PLC.map(p=>[p,planStats(PREV,BOOT.prev,BOOT.prev.today,p)]));
+  const dn=k=>p=>DF?DF[k].filter(x=>x.src===p).length:null;
+  const rows=[['列管中',p=>st[p].open,p=>sp&&sp[p].open],['已逾期',p=>st[p].late,p=>sp&&sp[p].late],['7 日內到期',p=>st[p].soon,p=>sp&&sp[p].soon],['沒有進度 2 週以上',p=>st[p].stall,p=>sp&&sp[p].stall],['最近一次週會有進度',p=>st[p].moved,p=>sp&&sp[p].moved],['在自己手上（企劃作業、已接收未開始）',p=>st[p].hand,p=>sp&&sp[p].hand],['這次匯入新增',dn('new')],['這次匯入結案',dn('closed')],['這次匯入期限延後',dn('extended')]];
+  $('planCmp').innerHTML=`<table class="ft"><thead><tr><th></th>${PLC.map(p=>`<th>${esc(p)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td>${PLC.map(p=>{const v=r[1](p);return`<td class="n">${v===null?'—':v+(r[2]&&sp?dl(v,r[2](p)):'')}</td>`}).join('')}</tr>`).join('')}</tbody></table>`;
+  chips('pvChips',PLC.map(p=>[p,p]),PV.pl,'data-pv');
+  const p=PV.pl,s=st[p],q=sp&&sp[p],op=cases.filter(c=>c.src===p&&!c.done);
+  $('planStats').innerHTML=[['列管中',s.open,q&&q.open,''],['已逾期',s.late,q&&q.late,'hot'],['7 日內到期',s.soon,q&&q.soon,''],['沒有進度 2 週以上',s.stall,q&&q.stall,''],['這次新增',DF?dn('new')(p):'—',null,''],['這次結案',DF?dn('closed')(p):'—',null,'']].map(x=>`<div class="stat ${x[3]}" style="cursor:default"><b>${x[1]}</b><span>${x[0]}${x[2]!==null&&x[2]!==undefined&&q?dl(x[1],x[2]):''}</span></div>`).join('');
+  const SGN=STG.filter(g=>g[0]!=='done'),cnt={};op.forEach(c=>{const k=stageNow(c);cnt[k]=(cnt[k]||0)+1});
+  $('planStage').innerHTML=SGN.filter(g=>cnt[g[0]]).map(g=>`<span style="flex:${cnt[g[0]]};background:var(${g[2]})" data-tip="${esc(`<b>${g[1]}</b><br>${cnt[g[0]]} 案`)}"></span>`).join('');
+  $('planStageLg').innerHTML=SGN.filter(g=>cnt[g[0]]).map(g=>`<span><i style="background:var(${g[2]})"></i>${g[1]} ${cnt[g[0]]}</span>`).join('');
+  $('planHandSub').textContent=`${p} 列管中 ${s.open} 案：在自己手上 ${s.hand} 案，其餘 ${s.open-s.hand} 案在等設計、Coding 或對方回覆。依目前狀態的文字判讀。`;
+  const cm=new Map();op.forEach(c=>cm.set(catOf(c),(cm.get(catOf(c))||0)+1));
+  hbars('planCat',[...cm].sort((a,b)=>b[1]-a[1]).map(r=>({l:r[0],v:r[1],t:`<b>${r[0]}</b><br>${r[1]} 案`})));
+  const ws=(DB.shw[p]||[]).slice(0,12).reverse(),mine=cases.filter(c=>c.src===p),vals=ws.map(wi=>mine.filter(c=>{const x=hmap(c).get(wi);return x&&!NPR.test(x)}).length);
+  {const el=$('planWk'),W=Math.max(240,el.clientWidth),H=180,L=6,R=6,T=20,B=22,n=vals.length||1,bw=(W-L-R)/n,mx=Math.max(...vals,1),y=v=>T+(H-T-B)*(1-v/mx);
+    let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p)} 近 12 次週會有進度的案件數"><line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="${cv('--axis')}"/>`;
+    vals.forEach((v,i)=>{const last=i===n-1,wk=WEEKS[ws[i]];g+=`<rect x="${(L+bw*i+bw*.2).toFixed(1)}" y="${y(v).toFixed(1)}" width="${(bw*.6).toFixed(1)}" height="${(H-B-y(v)).toFixed(1)}" rx="4" fill="${cv(last?'--acc':'--acc2')}" data-tip="${esc(`<b>${wk.replace(/-/g,'/')} 週會</b><br>${v} 案有進度`)}"/><text x="${L+bw*(i+.5)}" y="${y(v)-5}" text-anchor="middle" style="fill:${cv('--text')};font-weight:700">${v}</text>`+(i%2===(n-1)%2?`<text x="${L+bw*(i+.5)}" y="${H-6}" text-anchor="middle">${+wk.slice(5,7)}/${+wk.slice(8)}</text>`:'')});
+    el.innerHTML=g+'</svg>'}
+  const isNew=new Set(DF?DF.new.map(x=>x.id):[]),chg=new Map(DF?DF.status.map(x=>[x.id,x.before]):[]),ext=new Map(DF?DF.extended.map(x=>[x.id,[x.before,x.after]]):[]);
+  const moved=c=>isNew.has(c.id)||chg.has(c.id)||ext.has(c.id)?1:0;
+  const sorters={risk:(a,b)=>lateAt(b,TODAY)-lateAt(a,TODAY)||(b.stall||0)-(a.stall||0)||(a.due||'9').localeCompare(b.due||'9'),due:(a,b)=>(a.due||'9').localeCompare(b.due||'9'),stall:(a,b)=>(b.stall||0)-(a.stall||0),moved:(a,b)=>moved(b)-moved(a)||(a.due||'9').localeCompare(b.due||'9')};
+  chips('psChips',[['risk','逾期與停滯優先'],['due','依期限'],['stall','沒有進度最久'],['moved','這次有異動的優先']],PV.sort,'data-psort');
+  const w8=(DB.shw[p]||[]).slice(0,8);
+  $('planListTitle').textContent=`${p} 列管中案件（${op.length}）`;
+  $('planList').innerHTML=op.length?`<table class="ft"><thead><tr><th>案件</th><th>分類</th><th>階段與狀態</th><th>期限</th><th>沒有進度</th><th>近 8 次週會</th><th>這次匯入</th></tr></thead><tbody>${[...op].sort(sorters[PV.sort]).map(c=>{const late=lateAt(c,TODAY),g=STGN[stageNow(c)],hm=hmap(c);
+    return`<tr><td><a class="lnk" data-id="${c.id}">${esc(c.desc)}</a><br><small style="color:var(--muted2);font-family:var(--mono)">${c.id}</small></td><td>${esc(catOf(c))}</td><td><span class="tag" style="border-left:4px solid var(${g[2]})">${g[1]}</span><br><small style="color:var(--muted)">${esc(c.status||'未填')}</small></td><td class="n">${c.due?md(c.due):esc(c.duetxt||'未定')}${late?`<br><span class="tag red">逾期 ${late} 日</span>`:soonAt(c,TODAY)?'<br><span class="tag pur">7 日內</span>':HOLD.test(c.status||'')?'<br><span class="tag">暫緩</span>':''}</td><td class="n">${(c.stall||0)>=2?`<span class="tag ${c.stall>=4?'red':'amb'}">${c.stall} 週</span>`:'—'}</td><td><span class="hist">${w8.map(i=>`<i class="${histCls(hm.get(i))}" data-tip="${esc(WEEKS[i]+'：'+(hm.get(i)||'未登錄'))}"></i>`).join('')}</span></td><td>${isNew.has(c.id)?'<span class="tag blu">新增</span>':''}${chg.has(c.id)?`<span class="tag">狀態</span> <small style="color:var(--muted)">${esc(chg.get(c.id)||'未填')} → ${esc(c.status||'未填')}</small>`:''}${ext.has(c.id)?`${chg.has(c.id)?'<br>':''}<span class="tag amb">延後</span> <small style="color:var(--muted)">${md(ext.get(c.id)[0])} → ${md(ext.get(c.id)[1])}</small>`:''}${moved(c)?'':'—'}</td></tr>`}).join('')}</tbody></table>`:'<div class="empty">目前沒有列管中的案件。</div>';
+  const li2=(tg,cl,x,sub)=>`<li><span class="tag ${cl}">${tg}</span><span>${byId.has(x.id)?`<a data-id="${x.id}">${esc(x.desc)}</a>`:esc(x.desc)}<br><small>${esc(sub)}</small></span></li>`;
+  $('planDiff').innerHTML=DF?(DF.closed.filter(x=>x.src===p).map(x=>li2('結案','grn',x,(x.before||'未填')+' → '+(x.status||'結案'))).concat(DF.new.filter(x=>x.src===p).map(x=>li2('新增','blu',x,x.status||'未填')),DF.extended.filter(x=>x.src===p).map(x=>li2('延後','amb',x,md(x.before)+' → '+md(x.after))),DF.missing.filter(x=>x.src===p).map(x=>li2('不見了','red',x,'Excel 裡已經沒有這一列'))).join('')||'<li>這次匯入沒有新增、結案或延後。</li>'):'<li>第二次匯入之後，這裡會列出和上一次的差異。</li>';
+  $('planDiff').style.cssText='max-height:360px;overflow-y:auto';
+  const wi0=(DB.shw[p]||[]).find(i=>(DB.sums[p]||{})[i]&&DB.sums[p][i].some(Boolean)),rec=wi0!==undefined?DB.sums[p][wi0]:null;
+  $('planRepSub').textContent=rec?`${WEEKS[wi0].replace(/-/g,'/')} 週會，${p} 自己填的摘要`:'最近沒有填寫摘要';
+  $('planRep').textContent=rec?`本週完成項目\n${rec[0]||'（未填）'}\n\n本週進度項目\n${rec[1]||'（未填）'}\n\n下週預計完成項目\n${rec[2]||'（未填）'}`:'這位企劃的週表最上面三列（本週完成、本週進度、下週預計完成）目前是空的。'}
 /* ---------- wiring ---------- */
 function renderAll(){renderOverview();renderPipeline();renderCases();renderWeekly()}
-function route(){const VS=['overview','cases','weekly','manage'],h=location.hash.slice(1),v=VS.includes(h)&&(h!=='manage'||BOOT.role==='admin')?h:'overview';
+function route(){const VS=['overview','cases','weekly','plan','manage'],h=location.hash.slice(1),v=VS.includes(h)&&((h!=='manage'&&h!=='plan')||BOOT.role==='admin')?h:'overview';
   VS.forEach(k=>$('v-'+k).hidden=k!==v);
   document.querySelectorAll('.rail a').forEach(a=>a.dataset.v===v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
-  if(v==='overview')renderCharts()}
+  if(v==='overview')renderCharts();if(v==='plan')renderPlan()}
 function goCases(p){Object.assign(F,{st:'',flag:'',limit:60,grp:'all',src:'all',yr:''},p);renderCases();location.hash='cases';route();scrollTo(0,0)}
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-id],[data-close],[data-src],[data-state],[data-st],[data-mode],[data-grp],[data-pl],[data-pk],#clr');if(!t)return;
+  const t=e.target.closest('[data-id],[data-close],[data-src],[data-state],[data-st],[data-mode],[data-grp],[data-pl],[data-pk],[data-pv],[data-psort],#clr');if(!t)return;
+  if(t.dataset.pv){PV.pl=t.dataset.pv;renderPlan();return}
+  if(t.dataset.psort){PV.sort=t.dataset.psort;renderPlan();return}
   if(t.dataset.pk!==undefined){PF.k=t.dataset.pk;renderPipeline();return}
   if(t.id==='clr'){goCases({state:F.state});return}
   if(t.dataset.close!==undefined){t.closest('dialog').close();return}
@@ -470,7 +515,7 @@ $('newForm').onsubmit=e=>{e.preventDefault();const id='N'+String(++newN).padStar
   cases.push(c);byId.set(id,c);e.target.reset();$('n-status').value='Pending';$('newDlg').close();renderAll();openCase(id)};
 $('n-src').innerHTML=[...PLC,...MK].map(k=>`<option value="${k}">${SRC[k]}</option>`).join('');
 addEventListener('hashchange',route);
-let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!$('v-overview').hidden)renderCharts()},150)});
+let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!$('v-overview').hidden)renderCharts();if(!$('v-plan').hidden)renderPlan()},150)});
 renderAll();route();
 
 if(VIEW){document.body.classList.add('viewer');$('roleBtn').hidden=true}
